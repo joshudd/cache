@@ -2,12 +2,12 @@ import Link from "next/link";
 
 export default function Navbar() {
   return (
-    <nav className="flex justify-between items-center p-8 text-white">
-      <div className="font-bold text-xl hover:underline">
+    <nav className="fixed flex justify-between items-center p-8 w-full">
+      <div className="font-bold text-md hover:underline">
         <Link href="/">cache</Link>
       </div>
 
-      <div className="space-x-8">
+      <div className="space-x-4 text-sm">
         <Link href="/history" className="hover:underline">
           history
         </Link>

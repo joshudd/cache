@@ -3,7 +3,7 @@ import WeekSummary from "@/components/widgets/week";
 
 export default function Dashboard() {
   return (
-    <div className="flex justify-center w-full p-8 pt-4 pb-20 sm:p-20 sm:pt-8">
+    <div className="flex justify-center w-full p-8 pt-16 pb-20 sm:p-20 sm:pt-20">
       <div className="w-full max-w-3xl overflow-hidden relative">
         <div className="flex flex-col gap-16">
           <Widget title="Earlier Today">
