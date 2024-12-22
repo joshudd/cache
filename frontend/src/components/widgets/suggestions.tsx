@@ -1,5 +1,8 @@
+
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+
+import { toast } from "@/hooks/use-toast"
 
 const SUGGESTIONS = [
   { title: "Hurt", artist: "Arlo Parks" },
@@ -34,6 +37,7 @@ function Track({ title, artist }: { title: string; artist: string }) {
         variant="ghost" 
         size="icon"
         className="h-12 w-8 shrink-0 hover:bg-primary/10 transition-colors"
+        onClick={() => toast({ title: `cached "${title}" by ${artist}.` })}
       >
         <Plus className="h-4 w-4" />
       </Button>

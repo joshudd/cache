@@ -1,3 +1,5 @@
+"use client"
+
 import RecentSummary from "@/components/widgets/recent-summary";
 import Suggestions from "@/components/widgets/suggestions";
 import WeekSummary from "@/components/widgets/week";
