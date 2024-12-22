@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sofia_Sans } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/navbar";
 
 const sofia = Sofia_Sans({
   variable: "--font-sofia",
@@ -9,7 +10,7 @@ const sofia = Sofia_Sans({
 
 export const metadata: Metadata = {
   title: "cache",
-  description: "music & interest",
+  description: "music += interest",
 };
 
 export default function RootLayout({
@@ -19,7 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sofia.variable} antialiased`}>{children}</body>
+      <body className={`${sofia.variable} antialiased`}>
+        <Navbar />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
