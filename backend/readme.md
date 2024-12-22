@@ -3,6 +3,6 @@
 run the development server:
 
 ```bash
-cd frontend
-npm run dev
+cd backend
+python manage.py runserver
 ```
