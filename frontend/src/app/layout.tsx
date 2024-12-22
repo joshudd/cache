@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Sofia_Sans } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/navbar";
+import Navbar from "@/components/ui/navbar";
 
 const sofia = Sofia_Sans({
   variable: "--font-sofia",

@@ -1,4 +1,5 @@
 import RecentSummary from "@/components/widgets/recent-summary";
+import Suggestions from "@/components/widgets/suggestions";
 import WeekSummary from "@/components/widgets/week";
 
 export default function Dashboard() {
@@ -6,8 +7,11 @@ export default function Dashboard() {
     <div className="flex justify-center w-full p-8 pt-16 pb-20 sm:p-20 sm:pt-20">
       <div className="w-full max-w-3xl overflow-hidden relative">
         <div className="flex flex-col gap-16">
-          <Widget title="Earlier Today">
+          <Widget title="Earlier today">
             <RecentSummary />
+          </Widget>
+          <Widget title="Potential stash">
+            <Suggestions />
           </Widget>
           <Widget title="Buried this week">
             <WeekSummary />
