@@ -9,9 +9,6 @@ const SUGGESTIONS = [
   { title: "Sometimes", artist: "Faye Webster" },
   { title: "Your Face", artist: "Wisp" },
   { title: "projections", artist: "Night Tapes" },
-  { title: "Your Face", artist: "Wisp" },
-  { title: "Hurt", artist: "Arlo Parks" },
-  { title: "Your Face", artist: "Wisp" },
 ];
 
 export default function Suggestions() {

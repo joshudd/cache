@@ -1,27 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 body {
   font-family: var(--font-sofia);
 }
 
 @layer base {
   :root {
-    --background: 16 7% 12%;
-    --foreground: 44 63% 91%;
-    --card: 16 7% 12%;
-    --card-foreground: 44 63% 91%;
-    --popover: 16 7% 12%;
-    --popover-foreground: 44 63% 91%;
-    --primary: 44 63% 91%;
-    --primary-foreground: 16 7% 12%;
-    --secondary: 16 7% 16%;
-    --secondary-foreground: 44 63% 91%;
-    --muted: 16 7% 16%;
-    --muted-foreground: 44 63% 80%;
-    --accent: 16 7% 16%;
-    --accent-foreground: 44 63% 91%;
+    /* Brand Colors */
+    --white: 45 66% 91%;
+    --primary: 68 54% 48%;
+    --secondary: 43 91% 75%;
+    --black: 45 6% 12%;
+    --tertiary: 14 50% 20%;
+    --grey: 45 5% 29%;
+
+    /* Semantic Colors */
+    --background: hsl(var(--black));
+    --foreground: hsl(var(--white));
+    
+    --card: hsl(var(--black));
+    --card-foreground: hsl(var(--white));
+    
+    --popover: hsl(var(--black));
+    --popover-foreground: hsl(var(--white));
+    
+    --primary-foreground: hsl(var(--black));
+    
+    --secondary-foreground: hsl(var(--white));
+    --secondary-bg: hsl(var(--grey));
+    
+    --muted: hsl(var(--grey));
+    --muted-foreground: hsl(var(--white));
+    
+    --accent: hsl(var(--grey));
+    --accent-foreground: hsl(var(--white));
+
+    --button-default: hsl(var(--grey));
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
@@ -33,6 +48,7 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --radius: 0.5rem;
+    --secondary-text: 41 91% 75%;
   }
   .light {
     --background: 0 0% 100%;
@@ -59,6 +75,7 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --secondary-text: 41 91% 75%;
   }
 }
 
@@ -70,3 +87,4 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
