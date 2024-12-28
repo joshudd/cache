@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 export default function WeekSummary() {
   return (
     <div className="w-full flex">
-      <div className="w-fit bg-secondary p-10 rounded-tl-[16px] rounded-br-[16px] border-l-4 border-t-4 border-[#abbd38]">
+      <div className="w-fit bg-dark-grey p-10 rounded-tl-[16px] rounded-br-[16px] border-l-4 border-t-4 border-[#abbd38]">
         <div className="flex flex-row gap-12">
           {Array.from({ length: 7 }).map((_, index) => (
             <div key={index} className="flex flex-col items-center gap-3">

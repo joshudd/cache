@@ -17,10 +17,12 @@ export default {
   			black: 'hsl(var(--black))',
   			tertiary: 'hsl(var(--tertiary))',
   			grey: 'hsl(var(--grey))',
+  			'dark-grey': 'hsl(var(--dark-grey))',
 
   			// Semantic colors
   			background: 'var(--background)',
   			foreground: 'var(--foreground)',
+  			
   			card: {
   				DEFAULT: 'var(--card)',
   				foreground: 'var(--card-foreground)'

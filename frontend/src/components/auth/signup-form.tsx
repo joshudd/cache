@@ -16,6 +16,7 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
+import { signup } from "@/lib/auth";
 
 const FormSchema = z
   .object({
@@ -45,29 +46,21 @@ export default function SignupForm() {
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: data.username,
-            password: data.password,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Signup failed");
+      const response = await signup(data.username, data.password);
+      
+      if (response.user) {
+        toast({ 
+          title: "Account created successfully", 
+          description: `Welcome, ${response.user.username}!` 
+        });
+        router.push("/dashboard");
+      } else {
+        throw new Error("Signup response missing user data");
       }
-
-      toast({ title: "account created successfully" });
-      router.push("/login");
     } catch (error) {
       toast({
-        title: "failed to create account",
+        title: "Signup failed",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     }
