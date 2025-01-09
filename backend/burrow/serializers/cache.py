@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Track, Cache
+from burrow.models.cache import Cache, Track
 
 class TrackSerializer(serializers.ModelSerializer):
     """Serializer for Track objects with all fields."""

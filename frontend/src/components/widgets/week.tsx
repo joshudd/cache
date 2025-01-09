@@ -10,13 +10,11 @@ export default function WeekSummary() {
               <div
                 className={`w-6 h-6 rounded-lg flex items-center justify-center relative group`}
                 style={{
-                  backgroundColor: getActivityColor(
-                    Math.floor(Math.random() * 10)
-                  ),
+                  backgroundColor: getActivityColor(5),
                 }}
               >
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded px-2 py-1">
-                  {Math.floor(Math.random() * 10)} nuts
+                  {5} nuts
                 </div>
               </div>
               <p className="text-base text-muted-foreground">

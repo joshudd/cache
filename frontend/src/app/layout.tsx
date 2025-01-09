@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Sofia_Sans } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import TransitionContainer from "@/components/transition/transition-container";
 
 const sofia = Sofia_Sans({
   variable: "--font-sofia",
@@ -19,7 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${sofia.variable} antialiased`}>{children}</body>
+      <body className={`${sofia.variable}`}>
+        <TransitionContainer>{children}</TransitionContainer>
+        <Toaster />
+      </body>
     </html>
   );
 }

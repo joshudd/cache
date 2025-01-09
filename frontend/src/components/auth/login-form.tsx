@@ -3,11 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { login } from "@/lib/auth";
+import { login, connectSpotify } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "../ui/input";
 import {
@@ -26,6 +26,9 @@ const FormSchema = z.object({
 export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const spotifyCode = searchParams.get('spotify_code');
+  const spotifyState = searchParams.get('state');
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -37,12 +40,31 @@ export default function LoginForm() {
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
+      // login user
       await login(data.username, data.password);
-      toast({ title: "Successfully logged in" });
-      router.push("/dashboard");
+      
+      if (spotifyCode && spotifyState) {
+        try {
+          // connect spotify if code is present
+          await connectSpotify(spotifyCode, spotifyState);
+          router.push('/account/profile?success=true');
+        } catch (error) {
+          // if spotify connection fails, still redirect to dashboard
+          // but show error message
+          toast({
+            title: "Warning",
+            description: "Logged in successfully but Spotify connection failed.",
+            variant: "default",
+          });
+          router.push('/dashboard');
+        }
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error) {
       toast({
-        title: "Login failed",
+        title: "Error",
+        description: "Login failed. Please try again.",
         variant: "destructive",
       });
     }

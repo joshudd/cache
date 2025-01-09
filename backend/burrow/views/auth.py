@@ -1,10 +1,12 @@
 from django.contrib.auth import login, logout
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
+from burrow.models.spotify import SpotifyToken
 
 @api_view(['POST'])
 def login_view(request):
@@ -15,18 +17,23 @@ def login_view(request):
         user = User.objects.get(username=username)
         if user.check_password(password):
             login(request, user)
+            
+            # get user data including spotify connection status
+            user_data = {
+                'username': user.username,
+                'email': user.email,
+                'spotify_connected': SpotifyToken.objects.filter(user=user).exists()
+            }
+            
             return Response({
                 'detail': 'Successfully logged in',
-                'user': {
-                    'username': user.username,
-                    'email': user.email
-                }
+                'user': user_data
             })
-        else:
-            return Response(
-                {'detail': 'Invalid credentials'}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            
+        return Response(
+            {'detail': 'Invalid credentials'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
     except User.DoesNotExist:
         return Response(
             {'detail': 'User not found'}, 
@@ -62,7 +69,8 @@ def signup_view(request):
             'detail': 'User created successfully',
             'user': {
                 'username': user.username,
-                'email': user.email
+                'email': user.email,
+                'spotify_connected': False
             }
         })
     except Exception as e:
@@ -72,11 +80,11 @@ def signup_view(request):
         )
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_current_user(request):
-    if request.user.is_authenticated:
-        return Response({
-            'username': request.user.username,
-            'email': request.user.email
-        })
-    return Response(None, status=status.HTTP_401_UNAUTHORIZED)
-    
+    # get user data including spotify connection status
+    return Response({
+        'username': request.user.username,
+        'email': request.user.email,
+        'spotify_connected': SpotifyToken.objects.filter(user=request.user).exists()
+    }) 

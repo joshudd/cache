@@ -1,17 +1,16 @@
 from django.shortcuts import render
-
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Cache
-from .serializers import CacheBriefSerializer
+from rest_framework.permissions import IsAuthenticated
+from burrow.models.cache import Cache
+from burrow.serializers.cache import CacheBriefSerializer
 
+# crud for user caches
 class CacheViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     serializer_class = CacheBriefSerializer
 
     def get_queryset(self):
-        """Return public caches for anonymous users, or user's caches for authenticated users."""
+        # return user caches or none
         if self.request.user.is_authenticated:
             return Cache.objects.filter(user=self.request.user)
-        # For anonymous users, return an empty queryset
         return Cache.objects.none()

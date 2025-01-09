@@ -35,7 +35,7 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       await logout();
-      router.push("/login");
+      router.push("/");
     } catch (error) {
       console.error("Failed to sign out:", error);
     }
@@ -43,15 +43,15 @@ export default function Navbar() {
 
   const profile_dropdown = (
     <DropdownMenu>
-      <DropdownMenuTrigger>profile</DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuTrigger>account</DropdownMenuTrigger>
+      <DropdownMenuContent className="">
         <DropdownMenuLabel>
-          {username ? `${username}` : 'my account'}
+          {username ? `${username}` : "my account"}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         <DropdownMenuItem asChild>
-          <Link href="/profile">
+          <Link href="/account/profile">
             <User /> profile
           </Link>
         </DropdownMenuItem>
@@ -63,25 +63,25 @@ export default function Navbar() {
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleSignOut}>
+
+        <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut /> sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-  
+
   return (
-    <nav className="fixed flex justify-between items-center p-8 w-full">
+    <nav className="fixed flex justify-between items-center py-8 px-16 w-full">
       <div className="font-bold text-md hover:underline">
-        <Link href="/">cache</Link>
+        <Link href="/dashboard">cache</Link>
       </div>
 
       <div className="space-x-4 text-sm">
-        <Link href="/history" className="hover:underline">
+        {/* <Link href="/history" className="hover:underline">
           history
-        </Link>
-        { profile_dropdown }
+        </Link> */}
+        {profile_dropdown}
       </div>
     </nav>
   );
