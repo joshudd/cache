@@ -68,7 +68,7 @@ export default function Navbar() {
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut /> sign out
         </DropdownMenuItem>
-
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 
