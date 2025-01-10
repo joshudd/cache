@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.views.decorators.csrf import ensure_csrf_cookie
-from .views import auth, spotify
+from .views import auth, spotify, cache
 
 router = DefaultRouter()
 
@@ -20,4 +20,5 @@ urlpatterns = [
     path('spotify/playlists/', spotify.spotify_playlists, name='spotify_playlists'),
     path('spotify/recommendations/unique/', spotify.spotify_unique_recommendations, name='spotify_unique_recommendations'),
     path('spotify/disconnect/', spotify.spotify_disconnect, name='spotify_disconnect'),
+    path('spotify/search/', spotify.spotify_search, name='spotify_search'),
 ]

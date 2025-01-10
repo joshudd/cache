@@ -2,10 +2,12 @@ export interface Track {
     id: string;
     title: string;
     artist: string;
-    album?: string;
+    album: string;
+    image: string | null;
+    preview_url?: string;
     genre?: string;
     rating?: number;
-    dateAdded: Date;
+    dateAdded?: Date;
     lastPlayed?: Date;
     notes?: string;
   }

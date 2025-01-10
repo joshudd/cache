@@ -18,6 +18,7 @@ export default {
   			tertiary: 'hsl(var(--tertiary))',
   			grey: 'hsl(var(--grey))',
   			'dark-grey': 'hsl(var(--dark-grey))',
+  			'light-grey': 'hsl(var(--light-grey))',
 
   			// Semantic colors
   			background: 'var(--background)',

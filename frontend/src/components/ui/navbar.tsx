@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
+import TrackSearch from "../spotify/track-search";
 
 export default function Navbar() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function Navbar() {
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
           <LogOut /> sign out
         </DropdownMenuItem>
-      </DropdownMenuContent>
+
     </DropdownMenu>
   );
 
@@ -77,11 +78,14 @@ export default function Navbar() {
         <Link href="/dashboard">cache</Link>
       </div>
 
-      <div className="space-x-4 text-sm">
-        {/* <Link href="/history" className="hover:underline">
-          history
-        </Link> */}
-        {profile_dropdown}
+      <div className="space-x-8 text-sm flex items-center gap-4">
+        <TrackSearch />
+        <div className="flex items-center gap-4">
+          <Link href="/history" className="hover:underline">
+            history
+          </Link>
+          {profile_dropdown}
+        </div>
       </div>
     </nav>
   );

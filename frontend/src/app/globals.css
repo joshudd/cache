@@ -15,6 +15,7 @@ body {
     --tertiary: 14 50% 20%;
     --grey: 45 5% 29%;
     --dark-grey: 45 5% 15%;
+    --light-grey: 45 5% 40%;
 
     /* Semantic Colors */
     --background: hsl(var(--black));

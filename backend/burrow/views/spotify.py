@@ -191,3 +191,50 @@ def spotify_disconnect(request):
             {'detail': f'Failed to disconnect Spotify: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def spotify_search(request):
+    # get search query from request params
+    query = request.GET.get('q')
+    if not query:
+        return Response(
+            {'detail': 'Search query is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # get spotify token
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        # search tracks using spotify service
+        spotify = SpotifyService(token.access_token)
+        results = spotify.search_tracks(query)
+        
+        # format track results
+        tracks = [
+            {
+                'id': track['id'],
+                'title': track['name'],
+                'artist': track['artists'][0]['name'],
+                'album': track['album']['name'],
+                'image': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'preview_url': track['preview_url']
+            }
+            for track in results['tracks']['items']
+        ]
+        
+        return Response({'tracks': {'items': tracks}})
+        
+    except SpotifyToken.DoesNotExist:
+        return Response(
+            {'detail': 'Spotify not connected'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to search tracks: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

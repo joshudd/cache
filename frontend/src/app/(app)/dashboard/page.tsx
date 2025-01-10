@@ -50,9 +50,9 @@ export default function Dashboard() {
                 ))}
               </div>
             </Widget> */}
-            <Widget title="Playlists">
+            {/* <Widget title="Playlists">
               <Playlists />
-            </Widget>
+            </Widget> */}
             <Widget title="Earlier today">
               <RecentSummary />
             </Widget>
