@@ -2,30 +2,24 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
-
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import {
-  Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogTitle,
-  DialogDescription,
-} from "../ui/dialog";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-
-import { searchTracks, getSpotifyStatus, connectSpotify } from "@/lib/spotify";
-import { useDebounce } from "@/hooks/use-debounce";
-import { cn } from "@/lib/utils";
-import { createCache } from "@/lib/cache";
-
-import { Track } from "@/types";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 
-// custom dialog without close btn
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } from "../ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { TrackCard } from "./track-card";
+
+import { searchTracks, getSpotifyStatus, connectSpotify } from "@/lib/spotify";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
+import { createCache, checkCachedTracks, onCacheUpdate } from "@/lib/cache";
+import { Track } from "@/types";
+
+// dialog content without close btn
 const CustomDialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -54,11 +48,25 @@ export default function TrackSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [cachedTracks, setCachedTracks] = useState<Set<string>>(new Set());
   const debouncedQuery = useDebounce(query, 300);
 
-  // check spotify status
+  // handle escape key
   useEffect(() => {
-    async function checkStatus() {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        setIsOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // check spotify connection
+  useEffect(() => {
+    const checkStatus = async () => {
       try {
         const status = await getSpotifyStatus();
         setIsConnected(status.connected);
@@ -67,13 +75,33 @@ export default function TrackSearch() {
       } finally {
         setCheckingStatus(false);
       }
-    }
+    };
     checkStatus();
   }, []);
 
-  // search effect
+  // update cached tracks when cache changes or results update
   useEffect(() => {
-    async function search() {
+    // only subscribe when dialog is open
+    if (!isOpen) return;
+
+    const updateCachedTracks = async () => {
+      // only check if we have results to check against
+      if (results.length === 0) return;
+      
+      const trackIds = results.map((t: Track) => t.id);
+      const cachedData = await checkCachedTracks(trackIds);
+      setCachedTracks(new Set(cachedData.cached_ids));
+    };
+
+    // run initial check and subscribe to updates
+    updateCachedTracks();
+    const unsubscribe = onCacheUpdate(updateCachedTracks);
+    return () => unsubscribe();
+  }, [results, isOpen]); // add isOpen dependency
+
+  // search tracks
+  useEffect(() => {
+    const search = async () => {
       if (!debouncedQuery.trim() || !isConnected) {
         setResults([]);
         return;
@@ -83,16 +111,21 @@ export default function TrackSearch() {
       try {
         const data = await searchTracks(debouncedQuery);
         setResults(data.tracks.items);
+        
+        const trackIds = data.tracks.items.map((t: Track) => t.id);
+        const cachedData = await checkCachedTracks(trackIds);
+        setCachedTracks(new Set(cachedData.cached_ids));
       } catch (error) {
-        console.error("Search failed:", error);
+        console.error("search failed:", error);
       } finally {
         setLoading(false);
       }
-    }
+    };
     search();
   }, [debouncedQuery, isConnected]);
 
-  const cacheTrack = async (track: Track) => {
+  // cache track handler
+  const handleCache = async (track: Track) => {
     try {
       await createCache({
         spotify_id: track.id,
@@ -101,17 +134,19 @@ export default function TrackSearch() {
         album: track.album,
         preview_url: track.preview_url,
         image_url: track.image ?? undefined,
+        release_date: track.release_date,
         status: 'buried'
       });
+      
+      // update cached tracks state
+      setCachedTracks(prev => new Set([...prev, track.id]));
       
       toast({
         title: "Track cached",
         description: `${track.title} by ${track.artist} has been cached`
       });
-      
-      setIsOpen(false);
     } catch (error) {
-      console.error('Failed to cache track:', error);
+      console.error('failed to cache track:', error);
       toast({
         title: "Error",
         description: "Failed to cache track",
@@ -122,26 +157,22 @@ export default function TrackSearch() {
 
   return (
     <>
-      {/* trigger */}
       <div className="relative w-64">
         <Input
-          placeholder={checkingStatus ? "Loading..." : isConnected ? "Search for tracks..." : "Search for tracks..."} // should lead users to connect spotify
+          placeholder={checkingStatus ? "Loading..." : "Search for tracks..."}
           className="w-full"
           onClick={() => setIsOpen(true)}
           readOnly
         />
       </div>
 
-      {/* search modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <CustomDialogContent className="max-w-3xl p-0 gap-0 bg-transparent border-none">
           <VisuallyHidden asChild>
             <DialogTitle>Search Tracks</DialogTitle>
           </VisuallyHidden>
           <VisuallyHidden asChild>
-            <DialogDescription>
-              Search for music tracks to add to your library
-            </DialogDescription>
+            <DialogDescription>Search for music tracks to add to your library</DialogDescription>
           </VisuallyHidden>
 
           <motion.div
@@ -151,7 +182,6 @@ export default function TrackSearch() {
             transition={{ duration: 0.2 }}
             className="w-full flex flex-col items-center pt-24 px-4"
           >
-            {/* search input or connect message */}
             <motion.div layout className="relative w-full max-w-2xl">
               {isConnected ? (
                 <>
@@ -185,8 +215,7 @@ export default function TrackSearch() {
               )}
             </motion.div>
 
-            {/* results list */}
-            {isConnected && (
+            {isConnected && (loading || results.length > 0) && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -194,65 +223,32 @@ export default function TrackSearch() {
                 transition={{ duration: 0.2 }}
                 className="w-full max-w-2xl mt-4 rounded-lg bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80"
               >
-                {(loading || results.length > 0) && (
-                  <motion.div
-                    layout
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 rounded-lg border-[3px]"
-                  >
-                    <div className="max-h-[60vh] overflow-y-auto p-4 scrollbar-thin scrollbar-track-rounded [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-dark-grey [@media(hover:none)]:scrollbar-thumb-dark-grey">
-                      {loading && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                          ...
-                        </div>
-                      )}
-                      {!loading &&
-                        results.length > 0 &&
-                        results.map((track, i) => (
-                          <motion.div
+                <motion.div
+                  layout
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 rounded-lg border-[3px]"
+                >
+                  <div className="max-h-[60vh] overflow-y-auto p-4 scrollbar-thin scrollbar-track-rounded [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-dark-grey [@media(hover:none)]:scrollbar-thumb-dark-grey">
+                    {loading ? (
+                      <div className="text-sm text-muted-foreground text-center py-4">...</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {results.map((track, i) => (
+                          <TrackCard
                             key={track.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{
-                              duration: 0.2,
-                              delay: i * 0.05,
-                              ease: "easeOut",
-                            }}
-                            className="flex items-center justify-between p-3 hover:bg-accent rounded-md group"
-                          >
-                            <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 mr-3">
-                              <img
-                                src={track.image ?? "/placeholder-album.jpg"}
-                                alt={`${track.title} album art`}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium truncate">
-                                {track.title}
-                              </div>
-                              <div className="text-sm text-muted-foreground truncate">
-                                {track.artist}
-                              </div>
-                            </div>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => cacheTrack(track)}
-                            >
-                              cache
-                            </Button>
-                          </motion.div>
+                            track={track}
+                            index={i}
+                            isCached={cachedTracks.has(track.id)}
+                            onCache={handleCache}
+                          />
                         ))}
-                    </div>
-                  </motion.div>
-                )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </motion.div>

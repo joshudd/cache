@@ -55,3 +55,19 @@ class CacheViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def dig_up(self, request, pk=None):
+        """dig up a cache early, changing its status to discovered"""
+        cache = self.get_object()
+        if cache.status != 'buried':
+            return Response(
+                {'detail': 'Cache is not buried'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        cache.status = 'discovered'
+        cache.save()
+        
+        serializer = self.get_serializer(cache)
+        return Response(serializer.data)

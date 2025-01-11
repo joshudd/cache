@@ -34,6 +34,7 @@ export async function createCache(data: {
   album?: string;
   preview_url?: string;
   image_url?: string;
+  release_date?: string;
   notes?: string;
   status?: 'buried' | 'discovered' | 'favorite';
 }) {
@@ -85,7 +86,23 @@ export async function deleteCache(id: number) {
   });
   if (!response.ok) throw new Error('Failed to delete cache');
   return true;
-} 
+}
+
+export async function digUpCache(id: number) {
+  // get csrf token
+  const csrfToken = await getCSRFToken();
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cache/${id}/dig-up/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to dig up cache');
+  notifyCacheUpdate();
+  return response.json();
+}
 
 export async function checkCachedTracks(trackIds: string[]) {
     const response = await fetch(

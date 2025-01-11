@@ -221,7 +221,8 @@ def spotify_search(request):
                 'artist': track['artists'][0]['name'],
                 'album': track['album']['name'],
                 'image': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                'preview_url': track['preview_url']
+                'preview_url': track['preview_url'],
+                'release_date': track['album']['release_date']
             }
             for track in results['tracks']['items']
         ]
@@ -259,7 +260,8 @@ def recently_played(request):
                 'artist': item['track']['artists'][0]['name'],
                 'album': item['track']['album']['name'],
                 'image': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None,
-                'played_at': item['played_at']
+                'played_at': item['played_at'],
+                'release_date': item['track']['album']['release_date']
             }
             for item in results['items']
         ]

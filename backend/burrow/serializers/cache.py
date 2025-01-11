@@ -14,6 +14,7 @@ class TrackSerializer(serializers.ModelSerializer):
             'album',
             'preview_url',
             'image_url',
+            'release_date',
             'created_at'
         ]
         read_only_fields = ['id', 'created_at']
@@ -24,6 +25,7 @@ class CacheBriefSerializer(serializers.ModelSerializer):
     artist = serializers.CharField(source='track.artist', read_only=True)
     album = serializers.CharField(source='track.album', read_only=True)
     image_url = serializers.URLField(source='track.image_url', read_only=True)
+    release_date = serializers.CharField(source='track.release_date', read_only=True)
     
     class Meta:
         model = Cache
@@ -33,6 +35,7 @@ class CacheBriefSerializer(serializers.ModelSerializer):
             'artist',
             'album',
             'image_url',
+            'release_date',
             'status',
             'cached_at',
             'last_listened'
@@ -103,6 +106,7 @@ class CacheCreateSerializer(serializers.ModelSerializer):
     album = serializers.CharField(required=False, allow_blank=True, write_only=True)
     preview_url = serializers.URLField(required=False, allow_null=True, write_only=True)
     image_url = serializers.URLField(required=False, allow_null=True, write_only=True)
+    release_date = serializers.CharField(required=False, allow_blank=True, write_only=True)
     
     class Meta:
         model = Cache
@@ -113,6 +117,7 @@ class CacheCreateSerializer(serializers.ModelSerializer):
             'album',
             'preview_url',
             'image_url',
+            'release_date',
             'notes',
             'status'
         ]
@@ -120,18 +125,24 @@ class CacheCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create a new cache entry with track data."""
         # Extract track-related fields
-        track_fields = ['spotify_id', 'title', 'artist', 'album', 'preview_url', 'image_url']
+        track_fields = ['spotify_id', 'title', 'artist', 'album', 'preview_url', 'image_url', 'release_date']
         track_data = {
             field: validated_data.pop(field)
             for field in track_fields
             if field in validated_data
         }
 
-        # Get or create track
-        track, _ = Track.objects.get_or_create(
+        # Get or create track and update with new data
+        track, created = Track.objects.get_or_create(
             spotify_id=track_data['spotify_id'],
             defaults=track_data
         )
+        
+        # If track exists, update its fields with new data
+        if not created:
+            for field, value in track_data.items():
+                setattr(track, field, value)
+            track.save()
 
         # Create cache entry without setting user (it's set in the viewset)
         cache = Cache.objects.create(

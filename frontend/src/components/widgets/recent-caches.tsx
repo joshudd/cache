@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Track } from "@/types";
 import { getCaches, onCacheUpdate } from "@/lib/cache";
+import Link from "next/link";
 
 interface CachedTrack {
   id: string;
@@ -39,7 +40,6 @@ export default function RecentCaches() {
   if (loading) {
     return (
       <div className="border-2 border-dark-grey border-dashed rounded-lg p-4">
-        <h3 className="text-sm font-medium mb-4">recent caches</h3>
         <div className="text-sm text-muted-foreground">loading...</div>
       </div>
     );
@@ -48,7 +48,6 @@ export default function RecentCaches() {
   if (tracks.length === 0) {
     return (
       <div className="border-2 border-dark-grey border-dashed rounded-lg p-4">
-        <h3 className="text-sm font-medium mb-4">recent caches</h3>
         <div className="text-sm text-muted-foreground">no recent caches</div>
       </div>
     );
@@ -80,6 +79,12 @@ export default function RecentCaches() {
           </div>
         ))}
       </div>
+      <Link 
+        href="/history" 
+        className="mt-4 mx-auto max-w-[200px] block text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2 rounded-md hover:bg-dark-grey"
+      >
+        see more
+      </Link>
     </div>
   );
 } 

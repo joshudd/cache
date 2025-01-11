@@ -8,6 +8,7 @@ class Track(models.Model):
     album = models.CharField(max_length=200, blank=True)
     preview_url = models.URLField(null=True, blank=True)
     image_url = models.URLField(null=True, blank=True)
+    release_date = models.CharField(max_length=10, blank=True)  # format: YYYY-MM-DD
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -5,6 +5,7 @@ import TransitionChild from "@/components/transition/transition-child";
 import SpotifyConnectButton from '@/components/spotify/connect-button';
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from 'next/navigation';
+import PageBreadcrumb from "@/components/ui/page-breadcrumb";
 
 export default function Profile() {
   const { toast } = useToast();
@@ -59,11 +60,10 @@ export default function Profile() {
     <TransitionChild id="profile">
       <div className="flex justify-center w-full p-8 pt-16 pb-20 sm:p-20 sm:pt-20">
         <div className="w-full max-w-3xl overflow-hidden relative">
-          <div className="flex flex-col gap-16">
-            <h1 className="text-2xl font-bold">profile</h1>
-            
+          <PageBreadcrumb />
+          <div className="flex flex-col gap-16 mt-8">
             <section>
-              <h2 className="text-xl mb-4">Connected Services</h2>
+              <h2 className="text-xl font-semibold mb-4">Connected Services</h2>
               <div className="flex items-center gap-4">
                 <SpotifyConnectButton isConnected={isConnected} />
               </div>

@@ -10,6 +10,7 @@ export interface Track {
     dateAdded?: Date;
     lastPlayed?: Date;
     notes?: string;
+    release_date?: string;
   }
   
   export interface User {

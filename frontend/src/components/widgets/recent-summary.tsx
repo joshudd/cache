@@ -13,6 +13,7 @@ type Track = {
   album: string;
   image: string | null;
   played_at: string;
+  release_date: string;
 };
 
 const TrackCard = ({
@@ -103,6 +104,7 @@ export default function RecentSummary() {
         artist: t.artist,
         album: t.album,
         image_url: t.image ?? undefined,
+        release_date: t.release_date,
       });
       setCachedTracks(prev => new Set([...prev, t.id]));
       setTimeout(() => setCacheId(""), 1000);
