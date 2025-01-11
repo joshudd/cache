@@ -3,7 +3,9 @@ from rest_framework.routers import DefaultRouter
 from django.views.decorators.csrf import ensure_csrf_cookie
 from .views import auth, spotify, cache
 
-router = DefaultRouter()
+# configure router to handle both slashed and unslashed urls
+router = DefaultRouter(trailing_slash=False)
+router.register(r'cache', cache.CacheViewSet, basename='cache')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -21,4 +23,5 @@ urlpatterns = [
     path('spotify/recommendations/unique/', spotify.spotify_unique_recommendations, name='spotify_unique_recommendations'),
     path('spotify/disconnect/', spotify.spotify_disconnect, name='spotify_disconnect'),
     path('spotify/search/', spotify.spotify_search, name='spotify_search'),
+    path('spotify/recently-played/', spotify.recently_played, name='spotify_recently_played'),
 ]

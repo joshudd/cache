@@ -11,12 +11,12 @@ export default {
   	extend: {
   		colors: {
   			// Brand colors
-  			white: 'hsl(var(--white))',
-  			primary: 'hsl(var(--primary))',
-  			secondary: 'hsl(var(--secondary))',
-  			black: 'hsl(var(--black))',
-  			tertiary: 'hsl(var(--tertiary))',
-  			grey: 'hsl(var(--grey))',
+  			'white': 'hsl(var(--white))',
+  			'primary': 'hsl(var(--primary))',
+  			'secondary': 'hsl(var(--secondary))',
+  			'black': 'hsl(var(--black))',
+  			'tertiary': 'hsl(var(--tertiary))',
+  			'grey': 'hsl(var(--grey))',
   			'dark-grey': 'hsl(var(--dark-grey))',
   			'light-grey': 'hsl(var(--light-grey))',
 
@@ -47,13 +47,7 @@ export default {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
-  			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
-  			}
+
   		},
   		fontFamily: {
   			sofia: [

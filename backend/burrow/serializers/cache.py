@@ -20,15 +20,19 @@ class TrackSerializer(serializers.ModelSerializer):
 
 class CacheBriefSerializer(serializers.ModelSerializer):
     """Simplified Cache serializer for list views."""
-    track_title = serializers.CharField(source='track.title', read_only=True)
+    title = serializers.CharField(source='track.title', read_only=True)
     artist = serializers.CharField(source='track.artist', read_only=True)
+    album = serializers.CharField(source='track.album', read_only=True)
+    image_url = serializers.URLField(source='track.image_url', read_only=True)
     
     class Meta:
         model = Cache
         fields = [
             'id',
-            'track_title',
+            'title',
             'artist',
+            'album',
+            'image_url',
             'status',
             'cached_at',
             'last_listened'
@@ -129,10 +133,9 @@ class CacheCreateSerializer(serializers.ModelSerializer):
             defaults=track_data
         )
 
-        # Create cache entry
+        # Create cache entry without setting user (it's set in the viewset)
         cache = Cache.objects.create(
             track=track,
-            user=self.context['request'].user,
             **validated_data
         )
         return cache

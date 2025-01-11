@@ -73,14 +73,14 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="fixed flex justify-between items-center py-8 px-16 w-full">
-      <div className="font-bold text-md hover:underline">
+    <nav className="fixed top-0 left-0 right-0 z-30 bg-background flex justify-between items-center py-4 px-24 w-full">
+      <div className="font-bold text-md hover:underline pr-8">
         <Link href="/dashboard">cache</Link>
       </div>
 
       <div className="space-x-8 text-sm flex items-center gap-4">
         <TrackSearch />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-8">
           <Link href="/history" className="hover:underline">
             history
           </Link>

@@ -18,10 +18,12 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { searchTracks, getSpotifyStatus, connectSpotify } from "@/lib/spotify";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
+import { createCache } from "@/lib/cache";
 
 import { Track } from "@/types";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "@/hooks/use-toast";
 
 // custom dialog without close btn
 const CustomDialogContent = React.forwardRef<
@@ -89,6 +91,34 @@ export default function TrackSearch() {
     }
     search();
   }, [debouncedQuery, isConnected]);
+
+  const cacheTrack = async (track: Track) => {
+    try {
+      await createCache({
+        spotify_id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        preview_url: track.preview_url,
+        image_url: track.image ?? undefined,
+        status: 'buried'
+      });
+      
+      toast({
+        title: "Track cached",
+        description: `${track.title} by ${track.artist} has been cached`
+      });
+      
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Failed to cache track:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cache track",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <>
@@ -214,6 +244,7 @@ export default function TrackSearch() {
                               variant="ghost"
                               size="sm"
                               className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => cacheTrack(track)}
                             >
                               cache
                             </Button>

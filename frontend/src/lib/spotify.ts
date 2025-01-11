@@ -71,3 +71,14 @@ export async function getSpotifyStatus() {
   if (!response.ok) throw new Error('Failed to get Spotify status');
   return response.json();
 }
+
+export async function getRecentlyPlayed() {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/recently-played/`,
+    {
+      credentials: 'include',
+    }
+  );
+  if (!response.ok) throw new Error('failed to fetch recently played tracks');
+  return response.json();
+}

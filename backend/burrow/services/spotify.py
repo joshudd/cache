@@ -125,6 +125,17 @@ class SpotifyService:
             raise Exception(f"Failed to fetch recommendations: {response.text}")
         return response.json()
 
+    def get_recently_played(self, limit: int = 5) -> Dict:
+        """get user's recently played tracks"""
+        response = requests.get(
+            f'{self.BASE_URL}/me/player/recently-played',
+            headers={'Authorization': f'Bearer {self.access_token}'},
+            params={'limit': limit}
+        )
+        if not response.ok:
+            raise Exception(f"failed to fetch recent tracks: {response.text}")
+        return response.json()
+
     def get_access_token(self, code: str) -> Dict:
         """Exchange code for tokens."""
         response = requests.post(

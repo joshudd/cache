@@ -238,3 +238,41 @@ def spotify_search(request):
             {'detail': f'Failed to search tracks: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recently_played(request):
+    """get user's recently played tracks"""
+    try:
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        spotify = SpotifyService(token.access_token)
+        results = spotify.get_recently_played()
+        
+        # format track results
+        tracks = [
+            {
+                'id': item['track']['id'],
+                'title': item['track']['name'],
+                'artist': item['track']['artists'][0]['name'],
+                'album': item['track']['album']['name'],
+                'image': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None,
+                'played_at': item['played_at']
+            }
+            for item in results['items']
+        ]
+        
+        return Response({'tracks': tracks})
+        
+    except SpotifyToken.DoesNotExist:
+        return Response(
+            {'detail': 'Spotify not connected'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to fetch recent tracks: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
