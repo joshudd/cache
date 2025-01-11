@@ -59,9 +59,9 @@ export default function Dashboard() {
             <Widget title="Suggestions">
               <Suggestions />
             </Widget>
-            <Widget title="Buried this week">
+            {/* <Widget title="Buried this week">
               <WeekSummary />
-            </Widget>
+            </Widget> */}
           </div>
         </div>
       </div>

@@ -8,14 +8,14 @@ body {
 @layer base {
   :root {
     /* Brand Colors */
-    --white: 45 66% 91%;
     --primary: 68 54% 48%;
     --secondary: 43 91% 75%;
-    --black: 45 6% 12%;
     --tertiary: 14 50% 20%;
-    --grey: 45 5% 29%;
-    --dark-grey: 45 5% 15%;
+    --white: 45 66% 91%;
     --light-grey: 45 5% 40%;
+    --grey: 45 5% 29%;
+    --dark-grey: 45 5% 17%;
+    --black: 45 6% 12%;
 
     /* Semantic Colors */
     --background: hsl(var(--black));

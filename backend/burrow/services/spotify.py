@@ -43,7 +43,7 @@ class SpotifyService:
             print(f"Spotify token exchange error: {response.text}")
         return response.json()
 
-    def search_tracks(self, query: str, limit: int = 10) -> Dict:
+    def search_tracks(self, query: str, limit: int = 15) -> Dict:
         response = requests.get(
             f'{self.BASE_URL}/search',
             headers={'Authorization': f'Bearer {self.access_token}'},

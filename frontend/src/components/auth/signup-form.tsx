@@ -48,10 +48,10 @@ export default function SignupForm() {
     try {
       const response = await signup(data.username, data.password);
       
-      if (response.user) {
+      if (response) {
         toast({ 
           title: "Account created successfully", 
-          description: `Welcome, ${response.user.username}!` 
+          description: `Welcome, ${response.username}!` 
         });
         router.push("/dashboard");
       } else {
