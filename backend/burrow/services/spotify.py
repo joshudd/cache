@@ -125,7 +125,7 @@ class SpotifyService:
             raise Exception(f"Failed to fetch recommendations: {response.text}")
         return response.json()
 
-    def get_recently_played(self, limit: int = 5) -> Dict:
+    def get_recently_played(self, limit: int = 6) -> Dict:
         """get user's recently played tracks"""
         response = requests.get(
             f'{self.BASE_URL}/me/player/recently-played',
@@ -163,5 +163,30 @@ class SpotifyService:
         )
         if not response.ok:
             raise Exception(f"Failed to add tracks to playlist: {response.text}")
+        return response.json()
+
+    def create_playlist(self, name: str = "My Cache Playlist") -> Dict:
+        """Create a new playlist for the user."""
+        # get user id first
+        user_response = requests.get(
+            f'{self.BASE_URL}/me',
+            headers={'Authorization': f'Bearer {self.access_token}'}
+        )
+        if not user_response.ok:
+            raise Exception(f"Failed to get user info: {user_response.text}")
+        user_id = user_response.json()['id']
+
+        # create playlist
+        response = requests.post(
+            f'{self.BASE_URL}/users/{user_id}/playlists',
+            headers={'Authorization': f'Bearer {self.access_token}'},
+            json={
+                'name': name,
+                'description': 'Created by Cache - Your personal music time capsule',
+                'public': False
+            }
+        )
+        if not response.ok:
+            raise Exception(f"Failed to create playlist: {response.text}")
         return response.json()
     

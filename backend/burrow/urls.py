@@ -26,4 +26,5 @@ urlpatterns = [
     path('spotify/recently-played/', spotify.recently_played, name='spotify_recently_played'),
     path('spotify/buried-recommendations/', spotify.buried_recommendations, name='spotify_buried_recommendations'),
     path('spotify/playlist-settings/', spotify.playlist_settings, name='spotify_playlist_settings'),
+    path('spotify/playlists/create/', spotify.create_playlist, name='spotify_create_playlist'),
 ]

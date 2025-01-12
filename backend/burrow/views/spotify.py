@@ -363,6 +363,11 @@ def playlist_settings(request):
             playlist_id = request.data.get('playlist_id')
             playlist_name = request.data.get('playlist_name')
             
+            if playlist_id == "" and playlist_name == "":
+                # remove playlist settings
+                SpotifyPlaylistSettings.objects.filter(user=request.user).delete()
+                return Response({'detail': 'Playlist settings removed'})
+            
             if not playlist_id or not playlist_name:
                 return Response(
                     {'detail': 'playlist_id and playlist_name are required'}, 
@@ -392,7 +397,7 @@ def playlist_settings(request):
             'playlist_id': settings.playlist_id,
             'playlist_name': settings.playlist_name
         })
-        
+
     except SpotifyToken.DoesNotExist:
         return Response(
             {'detail': 'Spotify not connected'}, 
@@ -401,5 +406,40 @@ def playlist_settings(request):
     except Exception as e:
         return Response(
             {'detail': f'Failed to manage playlist settings: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_playlist(request):
+    """Create a new playlist for the user."""
+    try:
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        spotify = SpotifyService(token.access_token)
+        name = request.data.get('name', 'My Cache Playlist')
+        
+        # create playlist
+        playlist = spotify.create_playlist(name)
+        
+        # format response to match playlist list format
+        formatted_playlist = {
+            'id': playlist['id'],
+            'name': playlist['name'],
+            'images': playlist['images']
+        }
+        
+        return Response(formatted_playlist)
+        
+    except SpotifyToken.DoesNotExist:
+        return Response(
+            {'detail': 'Spotify not connected'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to create playlist: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

@@ -47,7 +47,7 @@ export default function LoginForm() {
         try {
           // connect spotify if code is present
           await connectSpotify(spotifyCode, spotifyState);
-          router.push('/account/profile?success=true');
+          router.push('/account?success=true');
         } catch (error) {
           // if spotify connection fails, still redirect to dashboard
           // but show error message

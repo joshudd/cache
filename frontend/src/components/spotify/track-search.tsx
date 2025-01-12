@@ -177,7 +177,7 @@ export default function TrackSearch() {
       <div className="relative w-64">
         <Input
           placeholder={checkingStatus ? "Loading..." : "Search for tracks..."}
-          className="w-full"
+          className="w-full hover:border-primary hover:ring-primary hover:placeholder:text-primary placeholder:transition-colors transition-colors"
           onClick={() => setIsOpen(true)}
           readOnly
         />

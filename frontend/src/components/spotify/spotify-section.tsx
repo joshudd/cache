@@ -1,14 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { getSpotifyStatus } from '@/lib/spotify';
-import SpotifyConnectButton from './connect-button';
-import PlaylistSelector from './playlist-selector';
+import { useEffect, useState } from "react";
+import { getSpotifyStatus } from "@/lib/spotify";
+import SpotifyConnectButton from "./connect-button";
+import PlaylistSelector from "./playlist-selector";
 
 export default function SpotifySection() {
   const [isConnected, setIsConnected] = useState(false);
-  const { toast } = useToast();
 
   // check spotify connection
   useEffect(() => {
@@ -17,7 +15,7 @@ export default function SpotifySection() {
         const data = await getSpotifyStatus();
         setIsConnected(data.connected);
       } catch (error) {
-        console.error('Failed to check Spotify status:', error);
+        console.error("Failed to check Spotify status:", error);
         setIsConnected(false);
       }
     };
@@ -36,7 +34,9 @@ export default function SpotifySection() {
 
       {isConnected && (
         <section>
-          <h2 className="text-xl font-semibold mb-4">Recommendations Playlist</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Recommendations Playlist
+          </h2>
           <p className="text-sm text-gray-500 mb-4">
             Select a playlist where recommended songs will be added.
           </p>
@@ -45,4 +45,4 @@ export default function SpotifySection() {
       )}
     </div>
   );
-} 
+}

@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       throw new Error('Failed to connect Spotify');
     }
 
-    return NextResponse.redirect(new URL('/account/profile?success=true', request.url));
+    return NextResponse.redirect(new URL('/account?success=true', request.url));
   } catch (error) {
     console.error('Error in Spotify callback:', error);
     return NextResponse.redirect(new URL('/dashboard?error=spotify_auth_failed', request.url));

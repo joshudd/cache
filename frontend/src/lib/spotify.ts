@@ -125,3 +125,25 @@ export async function updatePlaylistSettings(playlistId: string, playlistName: s
   }
   return response.json();
 }
+
+export async function createPlaylist(name: string) {
+  const csrfResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/csrf/`, {
+    credentials: 'include',
+  });
+  const { csrfToken } = await csrfResponse.json();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlists/create/`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({ name })
+    }
+  );
+  if (!response.ok) throw new Error('Failed to create playlist');
+  return response.json();
+}
