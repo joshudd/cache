@@ -82,3 +82,46 @@ export async function getRecentlyPlayed() {
   if (!response.ok) throw new Error('failed to fetch recently played tracks');
   return response.json();
 }
+
+export async function getBuriedRecommendations() {
+  const res = await fetch('/api/spotify/buried-recommendations')
+  if (!res.ok) throw new Error('failed to fetch buried recommendations')
+  return res.json()
+}
+
+export async function getPlaylistSettings() {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlist-settings/`,
+    {
+      credentials: 'include',
+    }
+  );
+  if (!response.ok && response.status !== 404) {
+    throw new Error('Failed to get playlist settings');
+  }
+  return response.json();
+}
+
+export async function updatePlaylistSettings(playlistId: string, playlistName: string) {
+  const csrfResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/csrf/`, {
+    credentials: 'include',
+  });
+  const { csrfToken } = await csrfResponse.json();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlist-settings/`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({ playlist_id: playlistId, playlist_name: playlistName }),
+    }
+  );
+  if (!response.ok) {
+    throw new Error('Failed to update playlist settings');
+  }
+  return response.json();
+}

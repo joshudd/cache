@@ -24,4 +24,6 @@ urlpatterns = [
     path('spotify/disconnect/', spotify.spotify_disconnect, name='spotify_disconnect'),
     path('spotify/search/', spotify.spotify_search, name='spotify_search'),
     path('spotify/recently-played/', spotify.recently_played, name='spotify_recently_played'),
+    path('spotify/buried-recommendations/', spotify.buried_recommendations, name='spotify_buried_recommendations'),
+    path('spotify/playlist-settings/', spotify.playlist_settings, name='spotify_playlist_settings'),
 ]

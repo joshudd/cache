@@ -8,16 +8,24 @@ import { toast } from "@/hooks/use-toast";
 
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Dialog, DialogPortal, DialogOverlay, DialogTitle, DialogDescription } from "../ui/dialog";
+import {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogTitle,
+  DialogDescription,
+} from "../ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TrackCard } from "./track-card";
+import { Loader2 } from "lucide-react";
 
 import { searchTracks, getSpotifyStatus, connectSpotify } from "@/lib/spotify";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { createCache, checkCachedTracks, onCacheUpdate } from "@/lib/cache";
 import { Track } from "@/types";
+import { Skeleton } from "../ui/skeleton";
 
 // dialog content without close btn
 const CustomDialogContent = React.forwardRef<
@@ -43,7 +51,7 @@ CustomDialogContent.displayName = "CustomDialogContent";
 export default function TrackSearch() {
   // state
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Track[]>([]);
+  const [displayResults, setDisplayResults] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -54,14 +62,14 @@ export default function TrackSearch() {
   // handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         e.preventDefault();
         setIsOpen(false);
-        setQuery('');
+        setQuery("");
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen]);
 
   // check spotify connection
@@ -86,9 +94,9 @@ export default function TrackSearch() {
 
     const updateCachedTracks = async () => {
       // only check if we have results to check against
-      if (results.length === 0) return;
-      
-      const trackIds = results.map((t: Track) => t.id);
+      if (displayResults.length === 0) return;
+
+      const trackIds = displayResults.map((t: Track) => t.id);
       const cachedData = await checkCachedTracks(trackIds);
       setCachedTracks(new Set(cachedData.cached_ids));
     };
@@ -97,21 +105,30 @@ export default function TrackSearch() {
     updateCachedTracks();
     const unsubscribe = onCacheUpdate(updateCachedTracks);
     return () => unsubscribe();
-  }, [results, isOpen]); // add isOpen dependency
+  }, [displayResults, isOpen]); // add isOpen dependency
+
+  // set loading state immediately on query change
+  useEffect(() => {
+    if (!query.trim() || !isConnected) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+  }, [query, isConnected]);
 
   // search tracks
   useEffect(() => {
     const search = async () => {
       if (!debouncedQuery.trim() || !isConnected) {
-        setResults([]);
+        setDisplayResults([]);
+        setLoading(false);
         return;
       }
 
-      setLoading(true);
       try {
         const data = await searchTracks(debouncedQuery);
-        setResults(data.tracks.items);
-        
+        setDisplayResults(data.tracks.items);
+
         const trackIds = data.tracks.items.map((t: Track) => t.id);
         const cachedData = await checkCachedTracks(trackIds);
         setCachedTracks(new Set(cachedData.cached_ids));
@@ -135,22 +152,22 @@ export default function TrackSearch() {
         preview_url: track.preview_url,
         image_url: track.image ?? undefined,
         release_date: track.release_date,
-        status: 'buried'
+        status: "buried",
       });
-      
+
       // update cached tracks state
-      setCachedTracks(prev => new Set([...prev, track.id]));
-      
+      setCachedTracks((prev) => new Set([...prev, track.id]));
+
       toast({
         title: "Track cached",
-        description: `${track.title} by ${track.artist} has been cached`
+        description: `${track.title} by ${track.artist} has been cached`,
       });
     } catch (error) {
-      console.error('failed to cache track:', error);
+      console.error("failed to cache track:", error);
       toast({
         title: "Error",
         description: "Failed to cache track",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -172,50 +189,64 @@ export default function TrackSearch() {
             <DialogTitle>Search Tracks</DialogTitle>
           </VisuallyHidden>
           <VisuallyHidden asChild>
-            <DialogDescription>Search for music tracks to add to your library</DialogDescription>
+            <DialogDescription>
+              Search for music tracks to add to your library
+            </DialogDescription>
           </VisuallyHidden>
 
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="w-full flex flex-col items-center pt-24 px-4"
           >
-            <motion.div layout className="relative w-full max-w-2xl">
+            <motion.div
+              layout
+              className="relative w-full max-w-2xl sticky top-24 z-50"
+            >
               {isConnected ? (
-                <>
+                <div className="relative bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 rounded-lg shadow-lg">
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search for tracks..."
-                    className="w-full h-14 text-lg pl-6 pr-6"
+                    className="w-full h-14 text-lg pl-6 pr-16 border-[3px]"
                     autoFocus
                   />
                   <span className="absolute right-2 top-0 -translate-y-full text-xs text-light-grey mb-1">
                     esc to exit
                   </span>
-                  {query && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
-                      onClick={() => setQuery("")}
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  )}
-                </>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    {loading && (
+                      <Loader2 className="h-4 w-4 animate-spin text-grey" />
+                    )}
+                    {query && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setQuery("")}
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="w-full text-center p-6 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 rounded-lg border-[3px]">
-                  <h3 className="text-lg font-medium mb-2">Connect Spotify to Search</h3>
-                  <p className="text-sm text-muted-foreground mb-4">You need to connect your Spotify account to search and cache tracks</p>
+                  <h3 className="text-lg font-medium mb-2">
+                    Connect Spotify to Search
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You need to connect your Spotify account to search and cache
+                    tracks
+                  </p>
                   <Button onClick={connectSpotify}>Connect Spotify</Button>
                 </div>
               )}
             </motion.div>
 
-            {isConnected && (loading || results.length > 0) && (
+            {isConnected && (loading || displayResults.length > 0) && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -232,11 +263,28 @@ export default function TrackSearch() {
                   className="overflow-hidden bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 rounded-lg border-[3px]"
                 >
                   <div className="max-h-[60vh] overflow-y-auto p-4 scrollbar-thin scrollbar-track-rounded [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-dark-grey [@media(hover:none)]:scrollbar-thumb-dark-grey">
-                    {loading ? (
-                      <div className="text-sm text-muted-foreground text-center py-4">...</div>
+                    {loading && displayResults.length === 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+                        {[...Array(3)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: i * 0.05 }}
+                            className="flex items-start space-x-4 p-2.5 rounded-lg border"
+                          >
+                            <Skeleton className="h-12 w-12 rounded-md" />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-3 w-3/4" />
+                              <Skeleton className="h-2 w-1/2" />
+                            </div>
+                            <Skeleton className="h-7 w-7 rounded-full" />
+                          </motion.div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {results.map((track, i) => (
+                        {displayResults.map((track, i) => (
                           <TrackCard
                             key={track.id}
                             track={track}

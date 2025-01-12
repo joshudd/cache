@@ -21,3 +21,13 @@ class SpotifyToken(models.Model):
         self.access_token = new_token_data['access_token']
         self.expires_at = timezone.now() + timedelta(seconds=new_token_data['expires_in'])
         self.save()
+
+class SpotifyPlaylistSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    playlist_id = models.CharField(max_length=255)
+    playlist_name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'spotify_playlist_settings'

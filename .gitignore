@@ -92,3 +92,21 @@ venv.bak/
 # System Files
 .DS_Store
 Thumbs.db
+
+# additional python ignores
+*.rdb
+celerybeat-schedule
+*.pot
+.pytest_cache/
+.coverage
+htmlcov/
+
+# additional django ignores
+backend/static/
+backend/media/
+backend/logs/
+
+# additional misc
+.history/
+.env.*.local
+*.bak

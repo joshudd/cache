@@ -1,13 +1,14 @@
 from django.utils import timezone
-from django.utils.timezone import timedelta
+from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from burrow.services.spotify import SpotifyService
-from burrow.models.spotify import SpotifyToken
+from burrow.models.spotify import SpotifyToken, SpotifyPlaylistSettings
 import requests
 from django.conf import settings
+from burrow.models.cache import Cache
 
 @api_view(['GET'])
 @permission_classes([AllowAny])  # allow unauthenticated access to get auth url
@@ -276,5 +277,129 @@ def recently_played(request):
     except Exception as e:
         return Response(
             {'detail': f'Failed to fetch recent tracks: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def buried_recommendations(request):
+    """get recommendations based on tracks buried a while ago"""
+    try:
+        # get spotify token
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        # find buried tracks from 2+ weeks ago with low listen count
+        buried_tracks = Cache.objects.filter(
+            user=request.user,
+            status='buried',
+            listen_count__lte=2,
+            last_listened__lte=timezone.now() - timedelta(weeks=2)
+        ).select_related('track').order_by('?')[:5]  # randomly select up to 5
+        
+        if not buried_tracks:
+            return Response(
+                {'detail': 'No suitable buried tracks found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # get spotify recommendations using buried tracks as seeds
+        spotify = SpotifyService(token.access_token)
+        seed_tracks = [cache.track.spotify_id for cache in buried_tracks[:3]]  # spotify allows max 5 seed tracks
+        recommendations = spotify.get_recommendations(
+            seed_tracks=seed_tracks,
+            limit=10
+        )
+        
+        # format response
+        tracks = [
+            {
+                'id': track['id'],
+                'title': track['name'],
+                'artist': track['artists'][0]['name'],
+                'album': track['album']['name'],
+                'image': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'preview_url': track['preview_url'],
+                'release_date': track['album']['release_date']
+            }
+            for track in recommendations['tracks']
+        ]
+        
+        return Response({
+            'tracks': tracks,
+            'seed_tracks': [
+                {
+                    'id': cache.track.spotify_id,
+                    'title': cache.track.title,
+                    'artist': cache.track.artist,
+                    'buried_at': cache.last_listened
+                }
+                for cache in buried_tracks[:3]
+            ]
+        })
+        
+    except SpotifyToken.DoesNotExist:
+        return Response(
+            {'detail': 'Spotify not connected'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to get recommendations: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def playlist_settings(request):
+    """get or update playlist settings for recommendations"""
+    try:
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        if request.method == 'POST':
+            playlist_id = request.data.get('playlist_id')
+            playlist_name = request.data.get('playlist_name')
+            
+            if not playlist_id or not playlist_name:
+                return Response(
+                    {'detail': 'playlist_id and playlist_name are required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # update or create settings
+            settings, _ = SpotifyPlaylistSettings.objects.update_or_create(
+                user=request.user,
+                defaults={
+                    'playlist_id': playlist_id,
+                    'playlist_name': playlist_name
+                }
+            )
+            
+            return Response({
+                'playlist_id': settings.playlist_id,
+                'playlist_name': settings.playlist_name
+            })
+        
+        # GET request - return current settings
+        settings = SpotifyPlaylistSettings.objects.filter(user=request.user).first()
+        if not settings:
+            return Response({'detail': 'No playlist selected'}, status=status.HTTP_404_NOT_FOUND)
+            
+        return Response({
+            'playlist_id': settings.playlist_id,
+            'playlist_name': settings.playlist_name
+        })
+        
+    except SpotifyToken.DoesNotExist:
+        return Response(
+            {'detail': 'Spotify not connected'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to manage playlist settings: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

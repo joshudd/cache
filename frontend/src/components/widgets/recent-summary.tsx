@@ -5,6 +5,7 @@ import { getRecentlyPlayed } from "@/lib/spotify";
 import { checkCachedTracks } from "@/lib/cache";
 import { formatDistanceToNow } from "date-fns";
 import { createCache } from "@/lib/cache";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Track = {
   id: string;
@@ -114,14 +115,29 @@ export default function RecentSummary() {
   };
 
   if (loading)
-    return <div className="bg-dark-grey rounded-lg p-4">loading...</div>;
+    return (
+      <div className="flex flex-wrap gap-x-6 gap-y-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="min-w-[200px] max-w-sm w-fit">
+            <div className="flex gap-4 bg-dark-grey rounded-lg overflow-hidden">
+              <Skeleton className="h-16 w-16 rounded-none" />
+              <div className="flex-1 py-2 pr-4">
+                <Skeleton className="h-3 w-24 mb-2" />
+                <Skeleton className="h-3 w-32 mb-2" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   if (err)
     return (
       <div className="bg-dark-grey rounded-lg p-4 text-red-500">{err}</div>
     );
 
   return (
-    <div className="flex flex-wrap gap-x-6 gap-y-4">
+    <div className="flex flex-wrap gap-x-6 gap-y-4 animate-in fade-in duration-500">
       {tracks.map((t) => (
         <TrackCard
           key={`${t.id}-${t.played_at}`}

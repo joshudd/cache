@@ -4,7 +4,7 @@ import TransitionChild from "@/components/transition/transition-child";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/ui/page-breadcrumb";
 import RecentSummary from "@/components/widgets/recent-summary";
-import Suggestions from "@/components/widgets/suggestions";
+import BuriedRecommendations from "@/components/widgets/buried-recommendations";
 import WeekSummary from "@/components/widgets/week";
 import Playlists from "@/components/spotify/playlists";
 import { useEffect, useState } from "react";
@@ -44,10 +44,10 @@ export default function Dashboard() {
             <Widget title="Recent caches">
               <RecentCaches />
             </Widget>
-            {/* <Widget title="Suggestions">
-              <Suggestions />
+            <Widget title="Rediscover">
+              <BuriedRecommendations />
             </Widget>
-            <Widget title="Buried this week">
+            {/* <Widget title="Buried this week">
               <WeekSummary />
             </Widget> */}
           </div>

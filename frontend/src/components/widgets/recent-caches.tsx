@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Track } from "@/types";
 import { getCaches, onCacheUpdate } from "@/lib/cache";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CachedTrack {
   id: string;
@@ -40,7 +41,18 @@ export default function RecentCaches() {
   if (loading) {
     return (
       <div className="border-2 border-dark-grey border-dashed rounded-lg p-4">
-        <div className="text-sm text-muted-foreground">loading...</div>
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded" />
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-3 w-32 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -54,7 +66,7 @@ export default function RecentCaches() {
   }
 
   return (
-    <div className="border-2 border-dark-grey border-dashed rounded-lg p-4"> 
+    <div className="border-2 border-dark-grey border-dashed rounded-lg p-4 animate-in fade-in duration-500"> 
       <div className="space-y-3">
         {tracks.map((track) => (
           <div key={track.id} className="flex items-center gap-3">
@@ -81,9 +93,9 @@ export default function RecentCaches() {
       </div>
       <Link 
         href="/history" 
-        className="mt-4 mx-auto max-w-[200px] block text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2 rounded-md hover:bg-dark-grey"
+        className="mt-4 mx-auto max-w-[200px] block text-center text-sm text-grey hover:text-light-grey transition-colors py-2 rounded-md hover:bg-dark-grey flex items-center justify-center gap-1"
       >
-        see more
+        history <span className="text-xs">→</span>
       </Link>
     </div>
   );

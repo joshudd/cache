@@ -21,7 +21,7 @@ class SpotifyService:
             'client_id': self.client_id,
             'response_type': 'code',
             'redirect_uri': self.redirect_uri,
-            'scope': 'user-library-read playlist-read-private user-top-read user-read-recently-played',
+            'scope': 'user-library-read playlist-read-private playlist-modify-public playlist-modify-private user-top-read user-read-recently-played',
             'state': 'spotify_auth',
             'show_dialog': 'true'  # force spotify to show login dialog
         }
@@ -152,5 +152,16 @@ class SpotifyService:
         if not response.ok:
             raise Exception(f"Failed to get access token: {response.text}")
         
+        return response.json()
+
+    def add_tracks_to_playlist(self, playlist_id: str, track_uris: list) -> Dict:
+        """Add tracks to a playlist."""
+        response = requests.post(
+            f'{self.BASE_URL}/playlists/{playlist_id}/tracks',
+            headers={'Authorization': f'Bearer {self.access_token}'},
+            json={'uris': [f'spotify:track:{track_id}' for track_id in track_uris]}
+        )
+        if not response.ok:
+            raise Exception(f"Failed to add tracks to playlist: {response.text}")
         return response.json()
     
