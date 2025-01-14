@@ -84,7 +84,12 @@ export async function getRecentlyPlayed() {
 }
 
 export async function getBuriedRecommendations() {
-  const res = await fetch('/api/spotify/buried-recommendations')
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/buried-recommendations/`,
+    {
+      credentials: 'include',
+    }
+  )
   if (!res.ok) throw new Error('failed to fetch buried recommendations')
   return res.json()
 }
@@ -145,5 +150,38 @@ export async function createPlaylist(name: string) {
     }
   );
   if (!response.ok) throw new Error('Failed to create playlist');
+  return response.json();
+}
+
+export async function getRediscoveredTracks() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/rediscovered/`,
+    {
+      credentials: 'include',
+    }
+  )
+  if (!res.ok) throw new Error('failed to fetch rediscovered tracks')
+  return res.json()
+}
+
+export async function addTracksToPlaylist(playlistId: string, trackIds: string[]) {
+  const csrfResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/csrf/`, {
+    credentials: 'include',
+  });
+  const { csrfToken } = await csrfResponse.json();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlists/${playlistId}/tracks/`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({ track_ids: trackIds })
+    }
+  );
+  if (!response.ok) throw new Error('Failed to add tracks to playlist');
   return response.json();
 }

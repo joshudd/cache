@@ -1,4 +1,4 @@
-from burrow.models.spotify import SpotifyToken
+from store.models.spotify import SpotifyToken
 
 class AuthenticationMiddleware:
     def __init__(self, get_response):

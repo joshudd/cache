@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllCaches, deleteCache, onCacheUpdate, digUpCache } from "@/lib/cache";
+import { getAllTracks, deleteTrack, onTrackUpdate, revealTrack } from "@/lib/track";
 import { format, isThisWeek, isThisMonth, subDays, isWithinInterval } from "date-fns";
-import { Trash2, ChevronDown, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/ui/page-breadcrumb";
 import TransitionChild from "@/components/transition/transition-child";
@@ -24,25 +24,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
+import { Track } from "@/types";
 
-interface Cache {
-  id: number;
-  title: string;
-  artist: string;
-  album?: string;
-  image_url?: string;
-  release_date?: string;
-  cached_at: string;
-  status: 'buried' | 'discovered' | 'favorite';
-}
-
-interface GroupedCaches {
-  [key: string]: Cache[];
+interface GroupedTracks {
+  [key: string]: Track[];
 }
 
 // track card component for history
-function TrackCard({ cache, onDelete, onDigUp }: { 
-  cache: Cache; 
+function TrackCard({ track, onDelete, onDigUp }: { 
+  track: Track; 
   onDelete: (id: number) => void;
   onDigUp: (id: number) => void;
 }) {
@@ -52,22 +42,22 @@ function TrackCard({ cache, onDelete, onDigUp }: {
       <div className="flex items-center gap-4 px-4 h-full">
         <div className="w-10 h-10 flex-shrink-0">
           <img
-            src={cache.image_url ?? "/placeholder-album.jpg"}
-            alt={`${cache.title} album art`}
+            src={track.metadata.image_url ?? "/placeholder-album.jpg"}
+            alt={`${track.metadata.title} album art`}
             className="h-full w-full object-cover rounded-sm"
           />
         </div>
         <div className="flex-1 min-w-0 py-1">
           <p className="font-medium text-sm text-white/90 truncate">
-            {cache.title}
+            {track.metadata.title}
           </p>
           <p className="text-xs text-white/70 truncate mt-0.5">
-            {cache.artist}
+            {track.metadata.artist}
           </p>
           <p className="text-xs text-white/40 truncate mt-0.5">
-            {cache.album}
-            {cache.release_date && (
-              <span className="text-white/30"> • {cache.release_date.split('-')[0]}</span>
+            {track.metadata.album}
+            {track.metadata.release_date && (
+              <span className="text-white/30"> • {track.metadata.release_date.split('-')[0]}</span>
             )}
           </p>
         </div>
@@ -76,35 +66,35 @@ function TrackCard({ cache, onDelete, onDigUp }: {
       {/* date column */}
       <div className="px-4 text-right">
         <p className="text-sm font-medium text-white/70">
-          {format(new Date(cache.cached_at), 'MMM d, yyyy')}
+          {track.locked_at ? format(new Date(track.locked_at), 'MMM d, yyyy') : ''}
         </p>
         <p className="text-xs text-white/50 mt-0.5">
-          {format(new Date(cache.cached_at), 'h:mm a')}
+          {track.locked_at ? format(new Date(track.locked_at), 'h:mm a') : ''}
         </p>
       </div>
 
       {/* options column */}
       <div className="flex items-center justify-end gap-2 px-4 opacity-60 group-hover:opacity-100 transition-opacity">
-        {cache.status === 'buried' && (
+        {track.status === 'pending' && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onDigUp(cache.id)}
+            onClick={() => onDigUp(track.id)}
             className="text-primary hover:text-primary hover:bg-primary/10 h-8"
           >
             dig up early
           </Button>
         )}
-        {cache.status === 'discovered' && (
-          <div className="text-xs font-medium text-purple-500/90">discovered</div>
+        {track.status === 'available' && (
+          <div className="text-xs font-medium text-purple-500/90">available</div>
         )}
-        {cache.status === 'favorite' && (
-          <div className="text-xs font-medium text-yellow-500/90">favorite</div>
+        {track.status === 'revealed' && (
+          <div className="text-xs font-medium text-yellow-500/90">revealed</div>
         )}
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onDelete(cache.id)}
+          onClick={() => onDelete(track.id)}
           className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
         >
           <Trash2 className="h-4 w-4" />
@@ -151,39 +141,39 @@ function LoadingSkeleton() {
 }
 
 export default function HistoryPage() {
-  const [caches, setCaches] = useState<Cache[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // fetch caches
-  const fetchCaches = async () => {
+  // fetch tracks
+  const fetchTracks = async () => {
     try {
-      const data = await getAllCaches();
-      setCaches(data);
+      const data = await getAllTracks();
+      setTracks(data);
     } catch (error) {
-      console.error('failed to fetch caches:', error);
+      console.error('failed to fetch tracks:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // sort and filter caches
-  const getSortedAndFilteredCaches = () => {
-    let filtered = [...caches];
+  // sort and filter tracks
+  const getSortedAndFilteredTracks = () => {
+    let filtered = [...tracks];
     
     // apply date filter
     if (dateFilter === 'week') {
-      filtered = filtered.filter(cache => isThisWeek(new Date(cache.cached_at)));
+      filtered = filtered.filter(track => track.locked_at && isThisWeek(new Date(track.locked_at)));
     } else if (dateFilter === 'month') {
-      filtered = filtered.filter(cache => isThisMonth(new Date(cache.cached_at)));
+      filtered = filtered.filter(track => track.locked_at && isThisMonth(new Date(track.locked_at)));
     } else if (dateFilter === 'custom' && dateRange?.from) {
-      filtered = filtered.filter(cache => {
-        const cacheDate = new Date(cache.cached_at);
+      filtered = filtered.filter(track => {
+        const trackDate = track.locked_at ? new Date(track.locked_at) : new Date();
         const endDate = dateRange.to || dateRange.from;
         if (!dateRange.from || !endDate) return true;
-        return isWithinInterval(cacheDate, {
+        return isWithinInterval(trackDate, {
           start: dateRange.from,
           end: endDate
         });
@@ -192,39 +182,40 @@ export default function HistoryPage() {
 
     // apply sorting
     return filtered.sort((a, b) => {
+      const aDate = a.locked_at ? new Date(a.locked_at) : new Date();
+      const bDate = b.locked_at ? new Date(b.locked_at) : new Date();
       switch (sortBy) {
         case 'newest':
-          return new Date(b.cached_at).getTime() - new Date(a.cached_at).getTime();
+          return bDate.getTime() - aDate.getTime();
         case 'oldest':
-          return new Date(a.cached_at).getTime() - new Date(b.cached_at).getTime();
+          return aDate.getTime() - bDate.getTime();
         case 'title':
-          return a.title.localeCompare(b.title);
+          return a.metadata.title.localeCompare(b.metadata.title);
         case 'artist':
-          return a.artist.localeCompare(b.artist);
+          return a.metadata.artist.localeCompare(b.metadata.artist);
         default:
           return 0;
       }
     });
   };
 
-  // group caches by time period
-  const getGroupedCaches = () => {
-    const sorted = getSortedAndFilteredCaches();
-    const now = new Date();
-    const groups: { [key: string]: Cache[] } = {
+  // group tracks by time period
+  const getGroupedTracks = () => {
+    const sorted = getSortedAndFilteredTracks();
+    const groups: { [key: string]: Track[] } = {
       'This Week': [],
       'This Month': [],
       'Older': []
     };
 
-    sorted.forEach(cache => {
-      const cacheDate = new Date(cache.cached_at);
-      if (isThisWeek(cacheDate)) {
-        groups['This Week'].push(cache);
-      } else if (isThisMonth(cacheDate)) {
-        groups['This Month'].push(cache);
+    sorted.forEach(track => {
+      const trackDate = track.locked_at ? new Date(track.locked_at) : new Date();
+      if (isThisWeek(trackDate)) {
+        groups['This Week'].push(track);
+      } else if (isThisMonth(trackDate)) {
+        groups['This Month'].push(track);
       } else {
-        groups['Older'].push(cache);
+        groups['Older'].push(track);
       }
     });
 
@@ -232,41 +223,38 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
-    fetchCaches();
-    const unsubscribe = onCacheUpdate(fetchCaches);
+    fetchTracks();
+    const unsubscribe = onTrackUpdate(fetchTracks);
     return () => unsubscribe();
   }, []);
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteCache(id);
-      // update state by removing the deleted cache
-      setCaches(prevCaches => {
-        const newCaches = [...prevCaches];
-        return newCaches.filter(cache => cache.id !== id);
+      await deleteTrack(id);
+      // update state by removing the deleted track
+      setTracks(prevTracks => {
+        const newTracks = [...prevTracks];
+        return newTracks.filter(track => track.id !== id);
       });
     } catch (error) {
-      console.error('Failed to delete cache:', error);
+      console.error('Failed to delete track:', error);
     }
   };
 
   const handleDigUp = async (id: number) => {
     try {
-      // TODO: implement digUpCache in lib/cache.ts
-      await digUpCache(id);
-      // update cache status in state
-      setCaches(prevCaches => {
-        const newCaches = [...prevCaches];
-        return newCaches.map(cache => 
-          cache.id === id ? { ...cache, status: 'discovered' as const } : cache
+      await revealTrack(id);
+      // update track status in state
+      setTracks(prevTracks => {
+        const newTracks = [...prevTracks];
+        return newTracks.map(track => 
+          track.id === id ? { ...track, status: 'revealed' as const } : track
         );
       });
     } catch (error) {
-      console.error('Failed to dig up cache:', error);
+      console.error('Failed to dig up track:', error);
     }
   };
-
-  // if (isLoading) return <div className="p-24">loading...</div>;
 
   return (
     <TransitionChild id="history">
@@ -356,8 +344,8 @@ export default function HistoryPage() {
                 }
               }}
             >
-              {Object.entries(getGroupedCaches()).map(([period, periodCaches]) => (
-                periodCaches.length > 0 && (
+              {Object.entries(getGroupedTracks()).map(([period, periodTracks]) => (
+                periodTracks.length > 0 && (
                   <motion.div 
                     key={period} 
                     className="mb-12"
@@ -369,10 +357,10 @@ export default function HistoryPage() {
                   >
                     <h2 className="text-xl font-semibold mb-4">{period}</h2>
                     <div className="grid grid-cols-1 gap-4">
-                      {periodCaches.map((cache) => (
+                      {periodTracks.map((track) => (
                         <TrackCard 
-                          key={cache.id} 
-                          cache={cache} 
+                          key={track.id} 
+                          track={track} 
                           onDelete={handleDelete}
                           onDigUp={handleDigUp}
                         />
@@ -382,14 +370,14 @@ export default function HistoryPage() {
                 )
               ))}
 
-              {caches.length === 0 && (
+              {tracks.length === 0 && (
                 <motion.div 
                   className="text-center text-muted-foreground"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  no caches found
+                  no tracks found
                 </motion.div>
               )}
             </motion.div>

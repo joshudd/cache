@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 
@@ -18,18 +18,17 @@ import {
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TrackCard } from "./track-card";
-import { Loader2 } from "lucide-react";
 
 import { searchTracks, getSpotifyStatus, connectSpotify } from "@/lib/spotify";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
-import { createCache, checkCachedTracks, onCacheUpdate } from "@/lib/cache";
+import { createTrack, checkTracksStatus, onTrackUpdate } from "@/lib/track";
 import { Track } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 
 // dialog content without close btn
 const CustomDialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
@@ -56,7 +55,7 @@ export default function TrackSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
-  const [cachedTracks, setCachedTracks] = useState<Set<string>>(new Set());
+  const [lockedTracks, setLockedTracks] = useState<Set<string>>(new Set());
   const debouncedQuery = useDebounce(query, 300);
 
   // handle escape key
@@ -87,25 +86,25 @@ export default function TrackSearch() {
     checkStatus();
   }, []);
 
-  // update cached tracks when cache changes or results update
+  // update locked tracks when lock status changes or results update
   useEffect(() => {
     // only subscribe when dialog is open
     if (!isOpen) return;
 
-    const updateCachedTracks = async () => {
+    const updateLockedTracks = async () => {
       // only check if we have results to check against
       if (displayResults.length === 0) return;
 
-      const trackIds = displayResults.map((t: Track) => t.id);
-      const cachedData = await checkCachedTracks(trackIds);
-      setCachedTracks(new Set(cachedData.cached_ids));
+      const trackIds = displayResults.map((t: Track) => t.metadata.spotify_id);
+      const lockedData = await checkTracksStatus(trackIds);
+      setLockedTracks(new Set(lockedData.locked_ids));
     };
 
     // run initial check and subscribe to updates
-    updateCachedTracks();
-    const unsubscribe = onCacheUpdate(updateCachedTracks);
+    updateLockedTracks();
+    const unsubscribe = onTrackUpdate(updateLockedTracks);
     return () => unsubscribe();
-  }, [displayResults, isOpen]); // add isOpen dependency
+  }, [displayResults, isOpen]);
 
   // set loading state immediately on query change
   useEffect(() => {
@@ -127,11 +126,13 @@ export default function TrackSearch() {
 
       try {
         const data = await searchTracks(debouncedQuery);
-        setDisplayResults(data.tracks.items);
+        const tracks = data.tracks.items;
+        setDisplayResults(tracks);
 
-        const trackIds = data.tracks.items.map((t: Track) => t.id);
-        const cachedData = await checkCachedTracks(trackIds);
-        setCachedTracks(new Set(cachedData.cached_ids));
+        // check which tracks are already locked
+        const trackIds = tracks.map((t: Track) => t.metadata.spotify_id);
+        const lockedData = await checkTracksStatus(trackIds);
+        setLockedTracks(new Set(lockedData.locked_ids));
       } catch (error) {
         console.error("search failed:", error);
       } finally {
@@ -141,34 +142,44 @@ export default function TrackSearch() {
     search();
   }, [debouncedQuery, isConnected]);
 
-  // cache track handler
-  const handleCache = async (track: Track) => {
+  // lock track handler
+  const handleLock = async (track: Track) => {
     try {
-      await createCache({
-        spotify_id: track.id,
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        preview_url: track.preview_url,
-        image_url: track.image ?? undefined,
-        release_date: track.release_date,
-        status: "buried",
+      await createTrack({
+        spotify_id: track.metadata.spotify_id,
+        title: track.metadata.title,
+        artist: track.metadata.artist,
+        album: track.metadata.album,
+        image_url: track.metadata.image_url,
+        release_date: track.metadata.release_date,
+        preview_url: track.metadata.preview_url,
       });
 
-      // update cached tracks state
-      setCachedTracks((prev) => new Set([...prev, track.id]));
+      // update locked tracks state
+      setLockedTracks(
+        (prevTracks: Set<string>) =>
+          new Set([...prevTracks, track.metadata.spotify_id])
+      );
 
       toast({
-        title: "Track cached",
-        description: `${track.title} by ${track.artist} has been cached`,
+        title: "Track sealed",
+        description: `${track.metadata.title} by ${track.metadata.artist} has been sealed`,
       });
     } catch (error) {
-      console.error("failed to cache track:", error);
-      toast({
-        title: "Error",
-        description: "Failed to cache track",
-        variant: "destructive",
-      });
+      console.error("failed to seal track:", error);
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to seal track",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -238,8 +249,7 @@ export default function TrackSearch() {
                     Connect Spotify to Search
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You need to connect your Spotify account to search and cache
-                    tracks
+                    You need to connect your Spotify account to search tracks
                   </p>
                   <Button onClick={connectSpotify}>Connect Spotify</Button>
                 </div>
@@ -265,12 +275,12 @@ export default function TrackSearch() {
                   <div className="max-h-[60vh] overflow-y-auto p-4 scrollbar-thin scrollbar-track-rounded [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-dark-grey [@media(hover:none)]:scrollbar-thumb-dark-grey">
                     {loading && displayResults.length === 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
-                        {[...Array(3)].map((_, i) => (
+                        {["sk1", "sk2", "sk3"].map((id, index) => (
                           <motion.div
-                            key={i}
+                            key={id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2, delay: i * 0.05 }}
+                            transition={{ duration: 0.2, delay: index * 0.05 }}
                             className="flex items-start space-x-4 p-2.5 rounded-lg border"
                           >
                             <Skeleton className="h-12 w-12 rounded-md" />
@@ -286,11 +296,13 @@ export default function TrackSearch() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {displayResults.map((track, i) => (
                           <TrackCard
-                            key={track.id}
+                            key={track.metadata.spotify_id}
                             track={track}
                             index={i}
-                            isCached={cachedTracks.has(track.id)}
-                            onCache={handleCache}
+                            isLocked={lockedTracks.has(
+                              track.metadata.spotify_id
+                            )}
+                            onLock={handleLock}
                           />
                         ))}
                       </div>

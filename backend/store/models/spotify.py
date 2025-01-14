@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
-from burrow.services.spotify import SpotifyService
+from store.services.spotify import SpotifyService
 
 class SpotifyToken(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -21,6 +21,20 @@ class SpotifyToken(models.Model):
         self.access_token = new_token_data['access_token']
         self.expires_at = timezone.now() + timedelta(seconds=new_token_data['expires_in'])
         self.save()
+    
+    @property
+    def is_valid(self) -> bool:
+        # refresh if expired, return false if no refresh token
+        if self.is_expired and self.refresh_token:
+            self.refresh()
+            return True
+        return not self.is_expired
+    
+    def get_valid_access_token(self) -> str:
+        # auto refresh and return access token
+        if self.is_expired:
+            self.refresh()
+        return self.access_token
 
 class SpotifyPlaylistSettings(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

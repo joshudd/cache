@@ -4,11 +4,16 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from burrow.services.spotify import SpotifyService
-from burrow.models.spotify import SpotifyToken, SpotifyPlaylistSettings
+from django.views.decorators.csrf import ensure_csrf_cookie
+from store.services.spotify import SpotifyService
+from store.models.spotify import SpotifyToken, SpotifyPlaylistSettings
 import requests
 from django.conf import settings
-from burrow.models.cache import Cache
+
+SPOTIFY_NOT_CONNECTED_RESPONSE = Response(
+    {'detail': 'Spotify not connected'}, 
+    status=status.HTTP_403_FORBIDDEN
+)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])  # allow unauthenticated access to get auth url
@@ -20,6 +25,7 @@ def get_auth_url(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])  # allow unauthenticated for initial connection
+@ensure_csrf_cookie
 def callback(request):
     # handle spotify oauth callback
     code = request.data.get('code')
@@ -99,72 +105,11 @@ def spotify_playlists(request):
         return Response(playlists)
         
     except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to fetch playlists: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def spotify_unique_recommendations(request):
-    try:
-        token = SpotifyToken.objects.get(user=request.user)
-        if token.is_expired:
-            token.refresh()
-        
-        spotify = SpotifyService(token.access_token)
-        
-        # start with getting user's top tracks for seeds
-        try:
-            top_tracks = spotify.get_user_top_tracks(limit=5)
-            
-            # fallback to getting saved tracks if no top tracks
-            if not top_tracks['items']:
-                saved_tracks = spotify.get_user_saved_tracks(limit=5)
-                seed_tracks = [track['track']['id'] for track in saved_tracks['items'][:5]]
-            else:
-                seed_tracks = [track['id'] for track in top_tracks['items'][:5]]
-            
-            if not seed_tracks:
-                return Response(
-                    {'detail': 'No seed tracks found'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # get recommendations based on seeds
-            recommendations = spotify.get_recommendations(
-                seed_tracks=seed_tracks[:3],
-                limit=20
-            )
-            
-            # format the response
-            unique_recommendations = [
-                {
-                    'id': track['id'],
-                    'name': track['name'],
-                    'artist': track['artists'][0]['name'],
-                    'albumArt': track['album']['images'][0]['url'] if track['album']['images'] else None
-                }
-                for track in recommendations['tracks']
-            ]
-            
-            return Response(unique_recommendations)
-            
-        except Exception as e:
-            return Response(
-                {'detail': f'Spotify API error: {str(e)}'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
-    except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
         )
 
 @api_view(['DELETE'])
@@ -186,7 +131,7 @@ def spotify_disconnect(request):
         return Response({'detail': 'Spotify disconnected successfully'})
         
     except SpotifyToken.DoesNotExist:
-        return Response({'detail': 'No Spotify connection found'})
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to disconnect Spotify: {str(e)}'}, 
@@ -217,13 +162,17 @@ def spotify_search(request):
         # format track results
         tracks = [
             {
-                'id': track['id'],
-                'title': track['name'],
-                'artist': track['artists'][0]['name'],
-                'album': track['album']['name'],
-                'image': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                'preview_url': track['preview_url'],
-                'release_date': track['album']['release_date']
+                'id': 0,  # temporary id since it's not saved yet
+                'metadata': {
+                    'spotify_id': track['id'],
+                    'title': track['name'],
+                    'artist': ', '.join(artist['name'] for artist in track['artists']),
+                    'album': track['album']['name'],
+                    'image_url': track['album']['images'][0]['url'] if track['album']['images'] else '/placeholder-album.jpg',
+                    'preview_url': track['preview_url'],
+                    'release_date': track['album']['release_date']
+                },
+                'status': 'active'  # default status for search results
             }
             for track in results['tracks']['items']
         ]
@@ -231,10 +180,7 @@ def spotify_search(request):
         return Response({'tracks': {'items': tracks}})
         
     except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to search tracks: {str(e)}'}, 
@@ -270,83 +216,10 @@ def recently_played(request):
         return Response({'tracks': tracks})
         
     except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to fetch recent tracks: {str(e)}'}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def buried_recommendations(request):
-    """get recommendations based on tracks buried a while ago"""
-    try:
-        # get spotify token
-        token = SpotifyToken.objects.get(user=request.user)
-        if token.is_expired:
-            token.refresh()
-        
-        # find buried tracks from 2+ weeks ago with low listen count
-        buried_tracks = Cache.objects.filter(
-            user=request.user,
-            status='buried',
-            listen_count__lte=2,
-            last_listened__lte=timezone.now() - timedelta(weeks=2)
-        ).select_related('track').order_by('?')[:5]  # randomly select up to 5
-        
-        if not buried_tracks:
-            return Response(
-                {'detail': 'No suitable buried tracks found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # get spotify recommendations using buried tracks as seeds
-        spotify = SpotifyService(token.access_token)
-        seed_tracks = [cache.track.spotify_id for cache in buried_tracks[:3]]  # spotify allows max 5 seed tracks
-        recommendations = spotify.get_recommendations(
-            seed_tracks=seed_tracks,
-            limit=10
-        )
-        
-        # format response
-        tracks = [
-            {
-                'id': track['id'],
-                'title': track['name'],
-                'artist': track['artists'][0]['name'],
-                'album': track['album']['name'],
-                'image': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                'preview_url': track['preview_url'],
-                'release_date': track['album']['release_date']
-            }
-            for track in recommendations['tracks']
-        ]
-        
-        return Response({
-            'tracks': tracks,
-            'seed_tracks': [
-                {
-                    'id': cache.track.spotify_id,
-                    'title': cache.track.title,
-                    'artist': cache.track.artist,
-                    'buried_at': cache.last_listened
-                }
-                for cache in buried_tracks[:3]
-            ]
-        })
-        
-    except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
-    except Exception as e:
-        return Response(
-            {'detail': f'Failed to get recommendations: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -399,10 +272,7 @@ def playlist_settings(request):
         })
 
     except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to manage playlist settings: {str(e)}'}, 
@@ -434,10 +304,7 @@ def create_playlist(request):
         return Response(formatted_playlist)
         
     except SpotifyToken.DoesNotExist:
-        return Response(
-            {'detail': 'Spotify not connected'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
     except Exception as e:
         return Response(
             {'detail': f'Failed to create playlist: {str(e)}'}, 

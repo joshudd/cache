@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'burrow',
+    'store',
 ]
 
 MIDDLEWARE = [
@@ -59,7 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'burrow.middleware.AuthenticationMiddleware',
+    'store.middleware.AuthenticationMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -111,8 +111,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME', default='cache_db'),
+        'USER': env('DB_USER', default='postgres'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
     }
 }
 
@@ -164,3 +168,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SPOTIFY_CLIENT_ID = env('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET')
 SPOTIFY_REDIRECT_URI = env('SPOTIFY_REDIRECT_URI')
+
+# Track settings
+TRACK_SETTINGS = {
+    'DEVELOPMENT_MODE': DEBUG,  # tie to debug mode
+    'DEVELOPMENT_LOCK_DAYS': 1,  # 1 day for testing
+    'PRODUCTION_LOCK_WEEKS': 2,  # 2 weeks for production
+}

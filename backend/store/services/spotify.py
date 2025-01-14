@@ -55,7 +55,7 @@ class SpotifyService:
         response = requests.get(
             f'{self.BASE_URL}/me/playlists',
             headers={'Authorization': f'Bearer {self.access_token}'},
-            params={'limit': 50}  # Adjust limit as needed
+            params={'limit': 50}  # adjust limit as needed
         )
         if not response.ok:
             raise Exception(f"Failed to fetch playlists: {response.text}")
@@ -165,7 +165,7 @@ class SpotifyService:
             raise Exception(f"Failed to add tracks to playlist: {response.text}")
         return response.json()
 
-    def create_playlist(self, name: str = "My Cache Playlist") -> Dict:
+    def create_playlist(self, name: str = "My Vault Playlist") -> Dict:
         """Create a new playlist for the user."""
         # get user id first
         user_response = requests.get(
@@ -182,11 +182,24 @@ class SpotifyService:
             headers={'Authorization': f'Bearer {self.access_token}'},
             json={
                 'name': name,
-                'description': 'Created by Cache - Your personal music time capsule',
+                'description': 'Created by Vault - Your personal music time capsule',
                 'public': False
             }
         )
         if not response.ok:
             raise Exception(f"Failed to create playlist: {response.text}")
         return response.json()
+
+    def get_track(self, track_id: str) -> Dict:
+        """get track metadata by id"""
+        try:
+            response = requests.get(
+                f'{self.BASE_URL}/tracks/{track_id}',
+                headers={'Authorization': f'Bearer {self.access_token}'}
+            )
+            if not response.ok:
+                raise Exception(f"failed to fetch track: {response.status_code} - {response.text}")
+            return response.json()
+        except Exception as e:
+            raise Exception(f"failed to fetch track: {str(e)}")
     

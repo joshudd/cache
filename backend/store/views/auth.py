@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
-from burrow.models.spotify import SpotifyToken
+from store.models.spotify import SpotifyToken
 
 @api_view(['POST'])
 def login_view(request):
