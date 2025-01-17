@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { getTracks, onTrackUpdate } from "@/lib/track";
+import { getTracks, onTrackUpdate, lockTrack } from "@/lib/track";
 import { Track } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import Link from "next/link";
 
-export default function RecentlySealed() {
+// shows tracks that are available to be locked
+export default function AvailableTracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTracks = async () => {
     try {
-      const data = await getTracks(5, "pending");
+      // get available tracks
+      const data = await getTracks(5, "available");
       setTracks(data || []);
     } catch (error) {
       console.error("failed to fetch tracks:", error);
@@ -50,7 +52,7 @@ export default function RecentlySealed() {
   if (tracks.length === 0) {
     return (
       <div className="border-2 border-dark-grey border-dashed rounded-lg p-4">
-        <div className="text-sm text-muted-foreground">no recent caches</div>
+        <div className="text-sm text-muted-foreground">no available tracks</div>
       </div>
     );
   }
@@ -95,4 +97,4 @@ export default function RecentlySealed() {
       </Link>
     </div>
   );
-}
+} 

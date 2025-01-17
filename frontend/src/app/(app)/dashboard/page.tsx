@@ -4,6 +4,7 @@ import TransitionChild from "@/components/transition/transition-child";
 import PageBreadcrumb from "@/components/ui/page-breadcrumb";
 import RecentlyListened from "@/components/widgets/recently-listened";
 import RecentlySealed from "@/components/widgets/recently-sealed";
+import AvailableTracks from "@/components/widgets/available-tracks";
 
 export default function Dashboard() {
   return (
@@ -18,6 +19,9 @@ export default function Dashboard() {
             </Widget>
             <Widget title="Recently sealed">
               <RecentlySealed />
+            </Widget>
+            <Widget title="Available tracks">
+              <AvailableTracks />
             </Widget>
           </div>
         </div>

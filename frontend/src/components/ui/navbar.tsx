@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
-import { User, History, Home } from "lucide-react";
+import { User, History, Home, Archive } from "lucide-react";
 import { usePathname } from "next/navigation";
 import TrackSearch from "../spotify/track-search";
 
@@ -44,13 +44,13 @@ export default function Navbar() {
           <TrackSearch />
           <div className="flex items-center gap-8">
             <Link
-              href="/history"
+              href="/vault"
               className={`flex items-center gap-2 hover:text-primary ${
-                pathname === "/history" ? "text-light-grey" : "text-white"
+                pathname === "/vault" ? "text-light-grey" : "text-white"
               }`}
             >
-              <History size={16} />
-              <span>history</span>
+              <Archive size={16} />
+              <span>vault</span>
             </Link>
             <Link
               href="/account"
