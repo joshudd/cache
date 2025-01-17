@@ -60,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'store.middleware.AuthenticationMiddleware',
+    'store.middleware.TrackStatusMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -83,6 +84,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_PAGINATION_CLASS': None,  # disable default pagination
+    'PAGE_SIZE': None,  # disable default page size
 }
 
 ROOT_URLCONF = 'core.urls'
@@ -174,4 +177,28 @@ TRACK_SETTINGS = {
     'DEVELOPMENT_MODE': DEBUG,  # tie to debug mode
     'DEVELOPMENT_LOCK_DAYS': 1,  # 1 day for testing
     'PRODUCTION_LOCK_WEEKS': 2,  # 2 weeks for production
+}
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'store.middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
 }

@@ -310,3 +310,57 @@ def create_playlist(request):
             {'detail': f'Failed to create playlist: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def add_tracks_to_playlist(request, playlist_id):
+    """add or remove tracks from a playlist"""
+    try:
+        token = SpotifyToken.objects.get(user=request.user)
+        if token.is_expired:
+            token.refresh()
+        
+        track_ids = request.data.get('track_ids', [])
+        if not track_ids:
+            return Response(
+                {'detail': 'track_ids are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        spotify = SpotifyService(token.access_token)
+        
+        if request.method == 'POST':
+            # add tracks to playlist
+            result = spotify.add_tracks_to_playlist(playlist_id, track_ids)
+            
+            # reveal tracks
+            from store.models.track import Track, TrackMetadata
+            now = timezone.now()
+            Track.objects.filter(
+                user=request.user,
+                metadata__spotify_id__in=track_ids,
+                status__in=['pending', 'available']
+            ).update(status='revealed', revealed_at=now)
+            
+            return Response(result)
+        else:  # DELETE
+            # remove tracks from playlist
+            result = spotify.remove_tracks_from_playlist(playlist_id, track_ids)
+            
+            # revert tracks back to available status
+            from store.models.track import Track, TrackMetadata
+            Track.objects.filter(
+                user=request.user,
+                metadata__spotify_id__in=track_ids,
+                status='revealed'
+            ).update(status='available', revealed_at=None)
+            
+            return Response(result)
+        
+    except SpotifyToken.DoesNotExist:
+        return SPOTIFY_NOT_CONNECTED_RESPONSE
+    except Exception as e:
+        return Response(
+            {'detail': f'Failed to modify playlist: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

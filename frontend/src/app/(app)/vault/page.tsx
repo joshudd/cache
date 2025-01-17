@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllTracks, deleteTrack, onTrackUpdate, revealTrack } from "@/lib/track";
+import { getAllTracks, deleteTrack, onTrackUpdate, makeAvailable } from "@/lib/track";
 import { format, isThisWeek, isThisMonth, subDays, isWithinInterval, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
-import { Trash2, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/ui/page-breadcrumb";
 import TransitionChild from "@/components/transition/transition-child";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { addTracksToPlaylist, getPlaylistSettings, removeTracksFromPlaylist } from "@/lib/spotify";
 import {
   Select,
   SelectContent,
@@ -26,9 +28,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { Track } from "@/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import VaultInfoTip from "@/components/widgets/vault-info-tip";
 
 interface GroupedTracks {
   [key: string]: Track[];
+}
+
+interface RecentlyUnearthed {
+  track: Track;
+  index: number;
+  isFadingOut?: boolean;
 }
 
 // add time remaining component
@@ -46,78 +55,120 @@ function TimeRemaining({ availableAt }: { availableAt?: string }) {
   
   return (
     <div className="text-xs text-primary/70">
-      excavation ready in {days > 0 ? `${days}d ` : ''}{hours > 0 ? `${hours}h ` : ''}{minutes}m
+      {days > 0 ? `${days}d ` : ''}{hours > 0 ? `${hours}h ` : ''}{minutes}m remaining
     </div>
   );
 }
 
-// track card component for history
-function TrackCard({ track, onDelete, onDigUp }: { 
-  track: Track; 
-  onDelete: (id: number) => void;
-  onDigUp: (id: number) => void;
-}) {
+// time progress component
+function TimeProgress({ track }: { track: Track }) {
+  if (!track.locked_at) return null;
+  
+  const now = new Date();
+  const lockedDate = new Date(track.locked_at);
+  const availableDate = track.available_at ? new Date(track.available_at) : null;
+  
+  // calc progress
+  const totalDuration = availableDate ? availableDate.getTime() - lockedDate.getTime() : 0;
+  const elapsed = now.getTime() - lockedDate.getTime();
+  const progress = totalDuration > 0 ? Math.min((elapsed / totalDuration) * 100, 100) : 0;
+  
+  // format time display
+  const getTimeDisplay = () => {
+    const elapsedDays = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+    
+    if (track.status === 'revealed') {
+      return `sealed for ${elapsedDays}d`;
+    } else if (track.status === 'available') {
+      return `ready after ${elapsedDays}d`;
+    }
+    
+    return `${elapsedDays}d sealed`;
+  };
+
   return (
-    <div className="grid grid-cols-[1fr_160px_140px] items-center min-h-[72px] hover:bg-dark-grey/30 rounded-lg transition-colors group">
-      {/* track info column */}
-      <div className="flex items-center gap-4 px-4 h-full">
-        <div className="w-10 h-10 flex-shrink-0">
-          <img
-            src={track.metadata.image_url ?? "/placeholder-album.jpg"}
-            alt={`${track.metadata.title} album art`}
-            className="h-full w-full object-cover rounded-sm"
+    <div className="flex items-center gap-2">
+      <div className="text-xs text-white/50">{getTimeDisplay()}</div>
+      {track.status === 'pending' && (
+        <div className="w-24 h-1 bg-dark-grey/30 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-primary/70 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex-1 min-w-0 py-1">
+      )}
+    </div>
+  );
+}
+
+// track card component for vault
+function TrackCard({ track, onDelete, onUnlockEarly, onUnearth }: { 
+  track: Track; 
+  onDelete: (id: number) => void;
+  onUnlockEarly: (id: number) => void;
+  onUnearth: (id: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] hover:bg-dark-grey/30 rounded-lg p-4 transition-colors group">
+      {/* album art */}
+      <div className="w-12 h-12 flex-shrink-0">
+        <img
+          src={track.metadata.image_url ?? "/placeholder-album.jpg"}
+          alt={`${track.metadata.title} album art`}
+          className="h-full w-full object-cover rounded-sm"
+        />
+      </div>
+
+      {/* main content */}
+      <div className="flex flex-col min-w-0">
+        <div className="flex items-center gap-2">
           <p className="font-medium text-sm text-white/90 truncate">
             {track.metadata.title}
           </p>
-          <p className="text-xs text-white/70 truncate mt-0.5">
-            {track.metadata.artist}
-          </p>
-          <p className="text-xs text-white/40 truncate mt-0.5">
-            {track.metadata.album}
-            {track.metadata.release_date && (
-              <span className="text-white/30"> • {track.metadata.release_date.split('-')[0]}</span>
-            )}
-          </p>
-          {track.status === 'pending' && track.available_at && (
-            <TimeRemaining availableAt={track.available_at} />
+          <div className={cn(
+            "px-2 py-0.5 rounded-full text-[10px] font-medium",
+            track.status === 'pending' && "bg-purple-500/10 text-purple-500/90",
+            track.status === 'available' && "bg-green-200/10 text-green-200/90",
+            track.status === 'revealed' && "bg-yellow-500/10 text-yellow-500/90"
+          )}>
+            {track.status === 'pending' ? 'sealed' :
+             track.status === 'available' ? 'ready' :
+             'unearthed'}
+          </div>
+        </div>
+        <p className="text-xs text-white/70 truncate mt-0.5">
+          {track.metadata.artist} • {track.metadata.album}
+          {track.metadata.release_date && (
+            <span className="text-white/30"> • {track.metadata.release_date.split('-')[0]}</span>
           )}
+        </p>
+        <div className="flex items-center gap-4 mt-1">
+          <TimeProgress track={track} />
+          {track.status === 'pending' && <TimeRemaining availableAt={track.available_at} />}
         </div>
       </div>
 
-      {/* date column */}
-      <div className="px-4 text-right">
-        <p className="text-sm font-medium text-white/70">
-          {track.status === 'pending' && track.locked_at ? 'Sealed on' : 
-           track.status === 'available' && track.available_at ? 'Ready since' :
-           track.status === 'revealed' && track.revealed_at ? 'Unearthed on' : ''}
-        </p>
-        <p className="text-xs text-white/50 mt-0.5">
-          {(track.status === 'pending' && track.locked_at ? format(new Date(track.locked_at), 'MMM d, yyyy') :
-            track.status === 'available' && track.available_at ? format(new Date(track.available_at), 'MMM d, yyyy') :
-            track.status === 'revealed' && track.revealed_at ? format(new Date(track.revealed_at), 'MMM d, yyyy') : '')}
-        </p>
-      </div>
-
-      {/* options column */}
-      <div className="flex items-center justify-end gap-2 px-4 opacity-60 group-hover:opacity-100 transition-opacity">
+      {/* actions */}
+      <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
         {track.status === 'pending' && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onDigUp(track.id)}
-            className="text-primary hover:text-primary hover:bg-primary/10 h-8"
+            onClick={() => onUnlockEarly(track.id)}
+            className="text-green-200 hover:text-green-200 hover:bg-green-200/10 h-8"
           >
-            unearth early
+            unlock early
           </Button>
         )}
         {track.status === 'available' && (
-          <div className="text-xs font-medium text-purple-500/90">excavation ready</div>
-        )}
-        {track.status === 'revealed' && (
-          <div className="text-xs font-medium text-yellow-500/90">unearthed</div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onUnearth(track.id)}
+            className="text-primary hover:text-primary hover:bg-primary/10 h-8"
+          >
+            unearth
+          </Button>
         )}
         <Button
           variant="ghost"
@@ -169,25 +220,62 @@ function LoadingSkeleton() {
   );
 }
 
-export default function HistoryPage() {
+export default function VaultPage() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [playlistId, setPlaylistId] = useState<string | null>(null);
+  const [recentlyUnearthed, setRecentlyUnearthed] = useState<RecentlyUnearthed | null>(null);
+  const { toast } = useToast();
 
-  // fetch tracks
-  const fetchTracks = async () => {
+  // fetch tracks and playlist settings
+  const fetchData = async () => {
     try {
       const data = await getAllTracks();
       setTracks(data);
+
+      // get playlist settings
+      const settings = await getPlaylistSettings();
+      setPlaylistId(settings.playlist_id);
     } catch (error) {
-      console.error('failed to fetch tracks:', error);
+      console.error('failed to fetch data:', error);
+      setTracks([]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+    const unsubscribe = onTrackUpdate(fetchData);
+    return () => unsubscribe();
+  }, []);
+
+  // check for tracks that should be available
+  const checkTrackStatus = () => {
+    const now = new Date();
+    setTracks(prevTracks => 
+      prevTracks.map(track => {
+        if (track.status === 'pending' && track.available_at && new Date(track.available_at) <= now) {
+          return { ...track, status: 'available' };
+        }
+        return track;
+      })
+    );
+  };
+
+  useEffect(() => {
+    const statusInterval = setInterval(checkTrackStatus, 60000);
+    // initial check
+    checkTrackStatus();
+
+    return () => {
+      clearInterval(statusInterval);
+    };
+  }, []);
 
   // sort and filter tracks
   const getSortedAndFilteredTracks = () => {
@@ -238,6 +326,11 @@ export default function HistoryPage() {
       'Ancient History': []
     };
 
+    // if we have a recently unearthed track, add it back to the filtered list
+    if (recentlyUnearthed) {
+      filtered.splice(recentlyUnearthed.index, 0, recentlyUnearthed.track);
+    }
+
     filtered.forEach(track => {
       const trackDate = track.locked_at ? new Date(track.locked_at) : new Date();
       if (isThisWeek(trackDate)) {
@@ -252,12 +345,6 @@ export default function HistoryPage() {
     return groups;
   };
 
-  useEffect(() => {
-    fetchTracks();
-    const unsubscribe = onTrackUpdate(fetchTracks);
-    return () => unsubscribe();
-  }, []);
-
   const handleDelete = async (id: number) => {
     try {
       await deleteTrack(id);
@@ -271,18 +358,93 @@ export default function HistoryPage() {
     }
   };
 
-  const handleDigUp = async (id: number) => {
+  const handleUnlockEarly = async (id: number) => {
     try {
-      await revealTrack(id);
-      // update track status in state
+      await makeAvailable(id);
       setTracks(prevTracks => {
         const newTracks = [...prevTracks];
         return newTracks.map(track => 
-          track.id === id ? { ...track, status: 'revealed' as const } : track
+          track.id === id ? { ...track, status: 'available' as const } : track
         );
       });
     } catch (error) {
-      console.error('Failed to dig up track:', error);
+      console.error('Failed to unlock track early:', error);
+    }
+  };
+
+  const handleUnearth = async (id: number, index: number) => {
+    if (!playlistId) {
+      toast({
+        title: "no playlist selected",
+        description: "please select a playlist in settings first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const track = tracks.find(t => t.id === id);
+      if (!track) return;
+
+      await addTracksToPlaylist(playlistId, [track.metadata.spotify_id]);
+      // track status will be updated automatically via the backend
+      setTracks(prevTracks => {
+        const newTracks = [...prevTracks];
+        return newTracks.map(t => 
+          t.id === id ? { ...t, status: 'revealed' as const } : t
+        );
+      });
+      
+      // set recently unearthed for undo
+      setRecentlyUnearthed({ track, index });
+      // start fade out after 14.7 seconds (allowing 300ms for fade)
+      setTimeout(() => {
+        setRecentlyUnearthed(prev => prev ? { ...prev, isFadingOut: true } : null);
+      }, 14700);
+      // clear undo after fade out
+      setTimeout(() => {
+        setRecentlyUnearthed(null);
+      }, 15000);
+
+      toast({
+        title: "track unearthed",
+        description: `${track.metadata.title} has been added to your playlist`,
+      });
+    } catch (error) {
+      console.error('Failed to unearth track:', error);
+      toast({
+        title: "error",
+        description: "failed to unearth track",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUndoUnearth = async () => {
+    if (recentlyUnearthed && playlistId) {
+      try {
+        // remove track from playlist
+        await removeTracksFromPlaylist(playlistId, [recentlyUnearthed.track.metadata.spotify_id]);
+        // add track back to local state at original index
+        setTracks(prevTracks => {
+          const newTracks = [...prevTracks];
+          const updatedTrack = { ...recentlyUnearthed.track, status: 'available' as const };
+          newTracks.splice(recentlyUnearthed.index, 0, updatedTrack);
+          return newTracks;
+        });
+        setRecentlyUnearthed(null);
+        toast({
+          title: "undo successful",
+          description: `${recentlyUnearthed.track.metadata.title} restored to ready tracks`,
+        });
+      } catch (error) {
+        console.error("failed to undo:", error);
+        toast({
+          title: "error",
+          description: "failed to undo track addition",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -335,11 +497,20 @@ export default function HistoryPage() {
     });
   };
 
+  // create list of items including tracks and undo placeholder
+  const items = [...getFilteredTracks()];
+  if (recentlyUnearthed) {
+    items.splice(recentlyUnearthed.index, 0, recentlyUnearthed.track);
+  }
+
   return (
-    <TransitionChild id="history">
+    <TransitionChild id="vault">
       <div className="flex justify-center w-full p-8 pt-16 pb-20 sm:p-20 sm:pt-20">
         <div className="w-full max-w-3xl overflow-hidden relative">
-          <PageBreadcrumb />
+          <div className="flex justify-between items-center">
+            <PageBreadcrumb />
+            <VaultInfoTip />
+          </div>
           
           <div className="mt-8">
             <Tabs 
@@ -351,21 +522,21 @@ export default function HistoryPage() {
               <TabsList className="w-full justify-start gap-1 bg-dark-grey/30">
                 <TabsTrigger 
                   value="all" 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-light-grey data-[state=active]:text-black"
                 >
-                  All Artifacts ({tracks.length})
+                  All ({tracks.length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="sealed" 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-purple-500 data-[state=active]:text-black"
                 >
                   Sealed ({tracks.filter(t => t.status === 'pending').length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="excavation-ready" 
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-green-200 data-[state=active]:text-black"
                 >
-                  Ready to Excavate ({tracks.filter(t => t.status === 'available').length})
+                  Ready ({tracks.filter(t => t.status === 'available').length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="unearthed" 
@@ -471,14 +642,58 @@ export default function HistoryPage() {
                         >
                           <h2 className="text-xl font-semibold mb-4">{period}</h2>
                           <div className="grid grid-cols-1 gap-4">
-                            {periodTracks.map((track) => (
-                              <TrackCard 
-                                key={track.id} 
-                                track={track} 
-                                onDelete={handleDelete}
-                                onDigUp={handleDigUp}
-                              />
-                            ))}
+                            {periodTracks.map((track, index) => {
+                              // if this is the recently unearthed track, show undo placeholder
+                              if (recentlyUnearthed && track.id === recentlyUnearthed.track.id) {
+                                return (
+                                  <div key={track.id} className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] bg-dark-grey/20 rounded-lg p-4 group opacity-80 ${recentlyUnearthed.isFadingOut ? 'animate-out fade-out duration-300' : 'animate-in fade-in duration-300'}`}>
+                                    <div className="w-12 h-12 flex-shrink-0 opacity-50">
+                                      <img
+                                        src={track.metadata.image_url ?? "/placeholder-album.jpg"}
+                                        alt={`${track.metadata.title} album art`}
+                                        className="h-full w-full object-cover rounded-sm"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col min-w-0 opacity-50">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-sm text-white/90 truncate">
+                                          {track.metadata.title}
+                                        </p>
+                                        <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary/90">
+                                          unearthed
+                                        </div>
+                                      </div>
+                                      <p className="text-xs text-white/70 truncate mt-0.5">
+                                        {track.metadata.artist} • {track.metadata.album}
+                                      </p>
+                                      <p className="text-xs text-white/40 truncate mt-0.5">
+                                        added to playlist
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={handleUndoUnearth}
+                                        className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
+                                      >
+                                        <Undo2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <TrackCard 
+                                  key={track.id} 
+                                  track={track} 
+                                  onDelete={handleDelete}
+                                  onUnlockEarly={handleUnlockEarly}
+                                  onUnearth={(id) => handleUnearth(id, index)}
+                                />
+                              );
+                            })}
                           </div>
                         </motion.div>
                       )

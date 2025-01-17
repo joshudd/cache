@@ -152,4 +152,21 @@ export async function checkTracksStatus(trackIds: string[]) {
     if (!response.ok) throw new Error('failed to check track status');
     return response.json();
 }
+
+export async function makeAvailable(id: number) {
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/tracks/${id}/make_available/`, 
+        {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+            },
+            credentials: 'include'
+        }
+    );
+    
+    if (!response.ok) throw new Error('Failed to make track available');
+    notifyTrackUpdate();
+    return response.json();
+}
   

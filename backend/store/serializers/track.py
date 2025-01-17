@@ -68,11 +68,28 @@ class TrackCreateSerializer(serializers.ModelSerializer):
         try:
             # create track with pending status since it's being sealed
             from django.utils import timezone
+            from datetime import timedelta
+            from django.conf import settings
+            
+            now = timezone.now()
+            locked_time = (
+                timedelta(days=settings.TRACK_SETTINGS['DEVELOPMENT_LOCK_DAYS'])
+                if settings.TRACK_SETTINGS['DEVELOPMENT_MODE']
+                else timedelta(weeks=settings.TRACK_SETTINGS['PRODUCTION_LOCK_WEEKS'])
+            )
+            
+            # debug logging
+            print(f"Debug: Creating track with metadata {metadata.id}")
+            print(f"Debug: Now: {now}")
+            print(f"Debug: Lock time: {locked_time}")
+            print(f"Debug: Available at will be: {now + locked_time}")
+            
             return Track.objects.create(
                 metadata=metadata,
                 user=self.context['request'].user,
                 status='pending',
-                locked_at=timezone.now(),
+                locked_at=now,
+                available_at=now + locked_time,
                 **validated_data
             )
         except Exception as e:

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
-import { User, History, Home, Archive } from "lucide-react";
+import { User, Home, Archive } from "lucide-react";
 import { usePathname } from "next/navigation";
 import TrackSearch from "../spotify/track-search";
 

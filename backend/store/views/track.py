@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from datetime import timedelta
+from django.conf import settings
 
 from store.models.track import TrackMetadata, Track
 from store.models.spotify import SpotifyToken
@@ -39,12 +41,24 @@ class TrackViewSet(viewsets.ModelViewSet):
         
         # get status filter from query params
         status = self.request.query_params.get('status')
+        limit = self.request.query_params.get('limit', None)
+        
         queryset = Track.objects.filter(user=self.request.user)
         
         if status:
             queryset = queryset.filter(status=status)
             
-        return queryset.order_by('-created_at')
+        queryset = queryset.order_by('-created_at')
+        
+        # apply limit if specified
+        if limit:
+            try:
+                limit = int(limit)
+                queryset = queryset[:limit]
+            except ValueError:
+                pass  # ignore invalid limit values
+                
+        return queryset
 
     @action(detail=True, methods=['post'])
     def lock(self, request, pk=None):
@@ -56,8 +70,23 @@ class TrackViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # calculate available_at based on settings
+        now = timezone.now()
+        locked_time = (
+            timedelta(days=settings.TRACK_SETTINGS['DEVELOPMENT_LOCK_DAYS'])
+            if settings.TRACK_SETTINGS['DEVELOPMENT_MODE']
+            else timedelta(weeks=settings.TRACK_SETTINGS['PRODUCTION_LOCK_WEEKS'])
+        )
+        
+        # debug logging
+        print(f"Debug: Locking track {track.id}")
+        print(f"Debug: Now: {now}")
+        print(f"Debug: Lock time: {locked_time}")
+        print(f"Debug: Available at will be: {now + locked_time}")
+        
         track.status = 'pending'
-        track.locked_at = timezone.now()
+        track.locked_at = now
+        track.available_at = now + locked_time
         track.save()
         
         serializer = self.get_serializer(track)
@@ -65,16 +94,33 @@ class TrackViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def reveal(self, request, pk=None):
-        """reveal an available track"""
+        """reveal a pending or available track"""
         track = self.get_object()
-        if track.status != 'available':
+        if track.status not in ['pending', 'available']:
             return Response(
-                {'detail': 'Track is not available'}, 
+                {'detail': 'Track must be pending or available'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         track.status = 'revealed'
         track.revealed_at = timezone.now()
+        track.save()
+        
+        serializer = self.get_serializer(track)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def make_available(self, request, pk=None):
+        """make a pending track available early"""
+        track = self.get_object()
+        if track.status != 'pending':
+            return Response(
+                {'detail': 'Track must be pending'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        track.status = 'available'
+        track.available_at = timezone.now()
         track.save()
         
         serializer = self.get_serializer(track)

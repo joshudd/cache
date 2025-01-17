@@ -11,7 +11,7 @@ export default function RecentlySealed() {
 
   const fetchTracks = async () => {
     try {
-      const data = await getTracks(5, "pending");
+      const data = await getTracks(4, "pending");
       setTracks(data || []);
     } catch (error) {
       console.error("failed to fetch tracks:", error);

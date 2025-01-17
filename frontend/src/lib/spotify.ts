@@ -185,3 +185,25 @@ export async function addTracksToPlaylist(playlistId: string, trackIds: string[]
   if (!response.ok) throw new Error('Failed to add tracks to playlist');
   return response.json();
 }
+
+export async function removeTracksFromPlaylist(playlistId: string, trackIds: string[]) {
+  const csrfResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/csrf/`, {
+    credentials: 'include',
+  });
+  const { csrfToken } = await csrfResponse.json();
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlists/${playlistId}/tracks/`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({ track_ids: trackIds })
+    }
+  );
+  if (!response.ok) throw new Error('Failed to remove tracks from playlist');
+  return response.json();
+}

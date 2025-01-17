@@ -165,6 +165,17 @@ class SpotifyService:
             raise Exception(f"Failed to add tracks to playlist: {response.text}")
         return response.json()
 
+    def remove_tracks_from_playlist(self, playlist_id: str, track_uris: list) -> Dict:
+        """Remove tracks from a playlist."""
+        response = requests.delete(
+            f'{self.BASE_URL}/playlists/{playlist_id}/tracks',
+            headers={'Authorization': f'Bearer {self.access_token}'},
+            json={'tracks': [{'uri': f'spotify:track:{track_id}'} for track_id in track_uris]}
+        )
+        if not response.ok:
+            raise Exception(f"Failed to remove tracks from playlist: {response.text}")
+        return response.json()
+
     def create_playlist(self, name: str = "My Vault Playlist") -> Dict:
         """Create a new playlist for the user."""
         # get user id first
