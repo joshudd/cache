@@ -33,7 +33,7 @@ export default function RecentlySealed() {
       <div className="border-2 border-dark-grey border-dashed rounded-lg p-4">
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
+            <div key={`skeleton-${i}`} className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded" />
               <div className="min-w-0 flex-1">
                 <Skeleton className="h-3 w-32 mb-2" />

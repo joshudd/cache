@@ -646,7 +646,7 @@ export default function VaultPage() {
                               // if this is the recently unearthed track, show undo placeholder
                               if (recentlyUnearthed && track.id === recentlyUnearthed.track.id) {
                                 return (
-                                  <div key={track.id} className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] bg-dark-grey/20 rounded-lg p-4 group opacity-80 ${recentlyUnearthed.isFadingOut ? 'animate-out fade-out duration-300' : 'animate-in fade-in duration-300'}`}>
+                                  <div key={`${period}-${track.id}`} className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] bg-dark-grey/20 rounded-lg p-4 group opacity-80 ${recentlyUnearthed.isFadingOut ? 'animate-out fade-out duration-300' : 'animate-in fade-in duration-300'}`}>
                                     <div className="w-12 h-12 flex-shrink-0 opacity-50">
                                       <img
                                         src={track.metadata.image_url ?? "/placeholder-album.jpg"}
@@ -686,7 +686,7 @@ export default function VaultPage() {
 
                               return (
                                 <TrackCard 
-                                  key={track.id} 
+                                  key={`${period}-${track.id}`} 
                                   track={track} 
                                   onDelete={handleDelete}
                                   onUnlockEarly={handleUnlockEarly}
