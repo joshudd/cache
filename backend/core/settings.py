@@ -31,9 +31,8 @@ load_dotenv()
 SECRET_KEY = 'django-insecure-9%$6*bv9y_sol+smdsxcio@)s(9e&^_qh^4^mk80u!0sttulz8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']  # allow all render subdomains
 
 
 # Application definition
