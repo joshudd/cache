@@ -1,0 +1,68 @@
+name: deploy pr preview frontend
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write # needed for commenting preview url
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    environment:
+      name: preview-${{ github.event.number }}
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: install deps
+        working-directory: frontend
+        run: npm ci
+      
+      - name: build
+        working-directory: frontend
+        run: npm run build
+        env:
+          # construct render preview url based on pr number
+          NEXT_PUBLIC_API_URL: https://cache-pr-${{ github.event.number }}.onrender.com
+          NEXT_PUBLIC_BASE_PATH: /cache/pr-preview/${{ github.event.number }}
+      
+      - name: setup pages
+        uses: actions/configure-pages@v4
+      
+      - name: upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/out
+          name: pr-preview-${{ github.event.number }}
+      
+      - name: deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: pr-preview-${{ github.event.number }}
+          preview: true
+      
+      - name: comment preview url
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.deployment.outputs.page_url }}';
+            const apiUrl = 'https://cache-pr-${{ github.event.number }}.onrender.com';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview deployment is ready!\n\nFrontend URL: ${previewUrl}\nAPI URL: ${apiUrl}`
+            }) 
