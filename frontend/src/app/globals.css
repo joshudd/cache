@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+  font-family: var(--font-sofia);
+}
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --primary: 68 54% 48%;
+    --secondary: 43 91% 75%;
+    --tertiary: 14 50% 20%;
+    --white: 45 66% 91%;
+    --light-grey: 45 5% 40%;
+    --grey: 45 5% 29%;
+    --dark-grey: 45 5% 17%;
+    --black: 45 6% 12%;
+
+    /* Semantic Colors */
+    --background: hsl(var(--black));
+    --foreground: hsl(var(--white));
+    
+    --card: hsl(var(--black));
+    --card-foreground: hsl(var(--white));
+    
+    --popover: hsl(var(--black));
+    --popover-foreground: hsl(var(--white));
+    
+    --primary-foreground: hsl(var(--black));
+    
+    --muted: hsl(var(--grey));
+    --muted-foreground: hsl(var(--white));
+    
+    --accent: hsl(var(--grey));
+    --accent-foreground: hsl(var(--white));
+
+    --button-default: hsl(var(--grey));
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
