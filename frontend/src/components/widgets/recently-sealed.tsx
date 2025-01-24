@@ -4,6 +4,7 @@ import { getTracks, onTrackUpdate } from "@/lib/track";
 import { Track } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function RecentlySealed() {
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -64,9 +65,11 @@ export default function RecentlySealed() {
             className="flex items-center gap-3 hover:bg-dark-grey/50 transition-colors rounded-lg p-2"
           >
             <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-              <img
+              <Image
                 src={track.metadata.image_url ?? "/placeholder-album.jpg"}
                 alt={track.metadata.title}
+                width={40}
+                height={40}
                 className="w-full h-full object-cover"
               />
             </div>

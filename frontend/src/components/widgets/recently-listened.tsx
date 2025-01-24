@@ -6,9 +6,19 @@ import { checkTracksStatus, createTrack } from "@/lib/track";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "../ui/skeleton";
+import Image from "next/image";
 
+interface Track { 
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  image: string;
+  release_date: string;
+  played_at: string;
+}
 interface TrackItemProps {
-  t: any;
+  t: Track;
   onClick: () => void;
   isSealed: boolean;
 }
@@ -37,9 +47,11 @@ function TrackItem({ t, onClick, isSealed }: TrackItemProps) {
           } group-hover:border-2 group-hover:m-1 transition-all duration-200 flex`}
         >
           <div className={`flex flex-1 ${isSealed ? "opacity-50" : ""}`}>
-            <img
+            <Image
               src={t.image ?? "/placeholder-album.jpg"}
               alt={`${t.title} album art`}
+              width={64}
+              height={64}
               className="h-16 w-16 object-cover flex-shrink-0"
             />
             <div className="flex-1 min-w-0 py-2 px-4 text-left">
@@ -72,7 +84,7 @@ export default function RecentlyListened() {
         setTracks(data.tracks);
 
         // check which tracks are already sealed (with validation)
-        const trackIds = data.tracks.map((t: any) => t.id);
+        const trackIds = data.tracks.map((t: Track) => t.id);
         const sealedData = await checkTracksStatus(trackIds);
         setSealedTracks(new Set(sealedData.locked_ids));
       } catch (e) {
@@ -85,7 +97,7 @@ export default function RecentlyListened() {
     loadTracks();
   }, []);
 
-  const sealTrack = async (t: any) => {
+  const sealTrack = async (t: Track) => {
     try {
       await createTrack({
         spotify_id: t.id,
@@ -150,7 +162,7 @@ export default function RecentlyListened() {
 
   return (
     <div className="flex flex-wrap gap-x-6 gap-y-4 animate-in fade-in duration-500">
-      {tracks.map((track: any) => (
+      {tracks.map((track: Track) => (
         <TrackItem
           key={track.id}
           t={track}

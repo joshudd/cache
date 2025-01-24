@@ -78,6 +78,7 @@ export default function TrackSearch() {
         const status = await getSpotifyStatus();
         setIsConnected(status.connected);
       } catch (error) {
+        console.error("failed to check spotify status:", error);
         setIsConnected(false);
       } finally {
         setCheckingStatus(false);

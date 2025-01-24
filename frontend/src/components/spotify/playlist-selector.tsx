@@ -16,9 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Settings2, Search, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 interface Playlist {
   id: string;
@@ -45,7 +47,7 @@ export default function PlaylistSelector() {
         // get user playlists
         const data = await getUserPlaylists();
         setPlaylists(
-          data.items.map((p: any) => ({
+          data.items.map((p: Playlist) => ({
             id: p.id,
             name: p.name,
             images: p.images || [],
@@ -56,7 +58,7 @@ export default function PlaylistSelector() {
         const settings = await getPlaylistSettings();
         if (settings.playlist_id) {
           const playlist = data.items.find(
-            (p: any) => p.id === settings.playlist_id
+            (p: Playlist) => p.id === settings.playlist_id
           );
           if (playlist) {
             setSelectedPlaylist({
@@ -154,10 +156,12 @@ export default function PlaylistSelector() {
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-2">
         {selectedPlaylist && selectedPlaylist.images[0] && (
-          <img
+          <Image
             src={selectedPlaylist.images[0].url}
             alt={selectedPlaylist.name}
             className="w-6 h-6 rounded object-cover"
+            width={24}
+            height={24}
           />
         )}
         <div className="text-sm">
@@ -183,6 +187,9 @@ export default function PlaylistSelector() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Select Playlist</DialogTitle>
+            <DialogDescription>
+              Select a playlist to use for your vault or create a new one
+            </DialogDescription>
           </DialogHeader>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -212,10 +219,12 @@ export default function PlaylistSelector() {
                 className="w-full h-10 flex flex-row items-center gap-3 justify-start px-3"
               >
                 {playlist.images[0] ? (
-                  <img
+                  <Image
                     src={playlist.images[0].url}
                     alt={playlist.name}
                     className="w-6 h-6 rounded object-cover flex-shrink-0"
+                    width={24}
+                    height={24}
                   />
                 ) : (
                   <div className="w-6 h-6 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -233,6 +242,9 @@ export default function PlaylistSelector() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Create New Playlist</DialogTitle>
+            <DialogDescription>
+              Enter a name to create a new Spotify playlist
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Input

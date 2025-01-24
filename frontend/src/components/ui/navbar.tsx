@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import { User, Home, Archive } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -9,21 +7,6 @@ import TrackSearch from "../spotify/track-search";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const userData = await getCurrentUser();
-        if (userData) {
-          setUsername(userData.username);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-      }
-    }
-    fetchUser();
-  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-30 bg-background w-full border-b border-dark-grey/20">

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { getAllTracks, deleteTrack, onTrackUpdate, makeAvailable } from "@/lib/track";
-import { format, isThisWeek, isThisMonth, subDays, isWithinInterval, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
+import { format, isThisWeek, isThisMonth, isWithinInterval, differenceInDays, differenceInHours, differenceInMinutes } from "date-fns";
 import { Trash2, CalendarIcon, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/ui/page-breadcrumb";
@@ -25,14 +26,10 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Track } from "@/types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import VaultInfoTip from "@/components/widgets/vault-info-tip";
-
-interface GroupedTracks {
-  [key: string]: Track[];
-}
 
 interface RecentlyUnearthed {
   track: Track;
@@ -112,9 +109,11 @@ function TrackCard({ track, onDelete, onUnlockEarly, onUnearth }: {
     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] hover:bg-dark-grey/30 rounded-lg p-4 transition-colors group">
       {/* album art */}
       <div className="w-12 h-12 flex-shrink-0">
-        <img
+        <Image
           src={track.metadata.image_url ?? "/placeholder-album.jpg"}
           alt={`${track.metadata.title} album art`}
+          width={48}
+          height={48}
           className="h-full w-full object-cover rounded-sm"
         />
       </div>
@@ -276,46 +275,6 @@ export default function VaultPage() {
       clearInterval(statusInterval);
     };
   }, []);
-
-  // sort and filter tracks
-  const getSortedAndFilteredTracks = () => {
-    let filtered = [...tracks];
-    
-    // apply date filter
-    if (dateFilter === 'week') {
-      filtered = filtered.filter(track => track.locked_at && isThisWeek(new Date(track.locked_at)));
-    } else if (dateFilter === 'month') {
-      filtered = filtered.filter(track => track.locked_at && isThisMonth(new Date(track.locked_at)));
-    } else if (dateFilter === 'custom' && dateRange?.from) {
-      filtered = filtered.filter(track => {
-        const trackDate = track.locked_at ? new Date(track.locked_at) : new Date();
-        const endDate = dateRange.to || dateRange.from;
-        if (!dateRange.from || !endDate) return true;
-        return isWithinInterval(trackDate, {
-          start: dateRange.from,
-          end: endDate
-        });
-      });
-    }
-
-    // apply sorting
-    return filtered.sort((a, b) => {
-      const aDate = a.locked_at ? new Date(a.locked_at) : new Date();
-      const bDate = b.locked_at ? new Date(b.locked_at) : new Date();
-      switch (sortBy) {
-        case 'newest':
-          return bDate.getTime() - aDate.getTime();
-        case 'oldest':
-          return aDate.getTime() - bDate.getTime();
-        case 'title':
-          return a.metadata.title.localeCompare(b.metadata.title);
-        case 'artist':
-          return a.metadata.artist.localeCompare(b.metadata.artist);
-        default:
-          return 0;
-      }
-    });
-  };
 
   // group tracks by time period
   const getGroupedTracks = () => {
@@ -648,9 +607,11 @@ export default function VaultPage() {
                                 return (
                                   <div key={`${period}-${track.id}`} className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 min-h-[72px] bg-dark-grey/20 rounded-lg p-4 group opacity-80 ${recentlyUnearthed.isFadingOut ? 'animate-out fade-out duration-300' : 'animate-in fade-in duration-300'}`}>
                                     <div className="w-12 h-12 flex-shrink-0 opacity-50">
-                                      <img
+                                      <Image
                                         src={track.metadata.image_url ?? "/placeholder-album.jpg"}
                                         alt={`${track.metadata.title} album art`}
+                                        width={48}
+                                        height={48}
                                         className="h-full w-full object-cover rounded-sm"
                                       />
                                     </div>

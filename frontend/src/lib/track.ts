@@ -1,6 +1,3 @@
-// track api functions
-import { Track } from "@/types"
-
 // get csrf token from cookie
 function getCsrfToken() {
     const name = 'csrftoken='

@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 
 export default function StatusHandler() {
+  return (
+    <Suspense>
+      <StatusHandlerContent />
+    </Suspense>
+  );
+}
+
+function StatusHandlerContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
 

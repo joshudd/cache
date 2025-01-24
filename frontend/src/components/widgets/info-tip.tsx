@@ -1,7 +1,3 @@
-"use client";
-
-import { useState } from "react";
-
 // info tip for new users about track flow
 export default function InfoTip() {
   return (

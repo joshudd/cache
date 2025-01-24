@@ -49,8 +49,7 @@ export default function LoginForm() {
           await connectSpotify(spotifyCode, spotifyState);
           router.push('/account?success=true');
         } catch (error) {
-          // if spotify connection fails, still redirect to dashboard
-          // but show error message
+          console.error("failed to connect spotify:", error);
           toast({
             title: "Warning",
             description: "Logged in successfully but Spotify connection failed.",
@@ -62,6 +61,7 @@ export default function LoginForm() {
         router.push('/dashboard');
       }
     } catch (error) {
+      console.error("failed to login:", error);
       toast({
         title: "Error",
         description: "Login failed. Please try again.",

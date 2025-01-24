@@ -10,6 +10,7 @@ import { Plus, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Track } from "@/types";
 import Link from "next/link";
+import Image from "next/image";
 
 interface RecentlyAddedTrack {
   track: Track;
@@ -163,10 +164,12 @@ export default function ReadyTracks() {
             return (
               <div key={track.id} className={`flex items-center gap-3 bg-dark-grey/20 rounded-lg p-2 group opacity-80 ${recentlyAdded.isFadingOut ? 'animate-out fade-out duration-300' : 'animate-in fade-in duration-300'}`}>
                 <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0 opacity-50">
-                  <img
+                  <Image
                     src={track.metadata.image_url ?? "/placeholder-album.jpg"}
                     alt={track.metadata.title}
                     className="w-full h-full object-cover"
+                    width={40}
+                    height={40}
                   />
                 </div>
                 <div className="min-w-0 flex-1 opacity-50">
@@ -199,10 +202,12 @@ export default function ReadyTracks() {
               className="flex items-center gap-3 hover:bg-dark-grey/50 transition-colors rounded-lg p-2 group"
             >
               <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-                <img
+                <Image
                   src={track.metadata.image_url ?? "/placeholder-album.jpg"}
                   alt={track.metadata.title}
                   className="w-full h-full object-cover"
+                  width={40}
+                  height={40}
                 />
               </div>
               <div className="min-w-0 flex-1">
