@@ -38,11 +38,24 @@ jobs:
       
       - name: build
         working-directory: frontend
-        run: npm run build
+        run: |
+          echo "starting build..."
+          npm run build
+          echo "build complete, checking output dir..."
+          ls -la .next || echo ".next dir not found"
         env:
           # construct render preview url based on pr number
           NEXT_PUBLIC_API_URL: https://cache-pr-${{ github.event.number }}.onrender.com
           NEXT_PUBLIC_BASE_PATH: /cache/pr-preview/${{ github.event.number }}
+      
+      - name: debug directory structure # debug step
+        working-directory: frontend
+        run: |
+          pwd
+          echo "Current directory contents:"
+          ls -la
+          echo "Build output location:"
+          ls -la .next || echo ".next not found"
       
       - name: setup pages
         uses: actions/configure-pages@v4
@@ -50,7 +63,7 @@ jobs:
       - name: upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/out
+          path: frontend/.next
           name: pr-preview-${{ github.event.number }}
       
       - name: deploy
