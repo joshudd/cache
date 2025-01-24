@@ -16,72 +16,39 @@ jobs:
     environment:
       name: preview-${{ github.event.number }}
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      NEXT_PUBLIC_API_URL: https://cache-pr-${{ github.event.number }}.onrender.com
+      NEXT_PUBLIC_BASE_PATH: /cache/pr-preview/${{ github.event.number }}
     steps:
       - uses: actions/checkout@v4
       
-      - name: debug env
-        run: |
-          echo "pr number: ${{ github.event.number }}"
-          echo "repo: ${{ github.repository }}"
-          echo "ref: ${{ github.ref }}"
-      
-      - name: setup node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       
-      - name: setup pages
-        uses: actions/configure-pages@v4
+      - uses: actions/configure-pages@v4
         with:
           static_site_generator: next
       
-      - name: restore cache
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
-          path: |
-            frontend/.next/cache
+          path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**.[jt]s', 'frontend/src/**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-
       
-      - name: install deps
-        working-directory: frontend
-        run: npm ci
-      
-      - name: build
+      - name: install & build
         working-directory: frontend
         run: |
-          echo "starting build with env vars:"
-          echo "NEXT_PUBLIC_API_URL=https://cache-pr-${{ github.event.number }}.onrender.com"
-          echo "NEXT_PUBLIC_BASE_PATH=/cache/pr-preview/${{ github.event.number }}"
-          echo "checking next.config.ts exists:"
-          ls -la next.config.ts
-          NEXT_PUBLIC_API_URL=https://cache-pr-${{ github.event.number }}.onrender.com \
-          NEXT_PUBLIC_BASE_PATH=/cache/pr-preview/${{ github.event.number }} \
+          npm ci
           npm run build
-          echo "build complete, checking output:"
-          ls -la .next/
-          echo "checking static files:"
-          ls -la .next/static
       
-      - name: upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/.next
+          path: frontend/out
           name: pr-preview-${{ github.event.number }}
-      
-      - name: debug artifact
-        run: |
-          echo "checking artifact upload directory:"
-          ls -la frontend/.next/
-          echo "checking github workspace:"
-          ls -la ${{ github.workspace }}
-          echo "checking runner temp:"
-          ls -la ${{ runner.temp }}
-          echo "checking artifact directory:"
-          find ${{ runner.temp }} -name "pr-preview-${{ github.event.number }}" -type f
       
       - name: deploy
         id: deployment
@@ -90,21 +57,15 @@ jobs:
           artifact_name: pr-preview-${{ github.event.number }}
           preview: true
       
-      - name: debug urls
-        run: |
-          echo "deployment url: ${{ steps.deployment.outputs.page_url }}"
-          echo "full preview path: ${{ steps.deployment.outputs.page_url }}/cache/pr-preview/${{ github.event.number }}"
-      
-      - name: comment preview url
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
             const previewUrl = '${{ steps.deployment.outputs.page_url }}';
-            const apiUrl = 'https://cache-pr-${{ github.event.number }}.onrender.com';
             const fullPreviewUrl = `${previewUrl}/cache/pr-preview/${{ github.event.number }}`;
+            const apiUrl = '${{ env.NEXT_PUBLIC_API_URL }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 Preview deployment is ready!\n\nFrontend URLs:\n- Base: ${previewUrl}\n- Full path: ${fullPreviewUrl}\nAPI URL: ${apiUrl}\n\nIf you're seeing 404s, try the full path URL.`
+              body: `🚀 Preview deployment is ready!\n\nFrontend URLs:\n- Base: ${previewUrl}\n- Full path: ${fullPreviewUrl}\nAPI URL: ${apiUrl}`
             }) 
