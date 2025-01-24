@@ -26,39 +26,31 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       
-      - name: clear npm cache # try to fix react version mismatch
-        working-directory: frontend
-        run: |
-          npm cache clean --force
-          rm -rf node_modules package-lock.json
+      - name: setup pages
+        uses: actions/configure-pages@v4
+        with:
+          static_site_generator: next
+      
+      - name: restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**.[jt]s', 'frontend/src/**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-
       
       - name: install deps
         working-directory: frontend
-        run: npm install --no-package-lock
+        run: npm ci
       
       - name: build
         working-directory: frontend
         run: |
           echo "starting build..."
+          NEXT_PUBLIC_API_URL=https://cache-pr-${{ github.event.number }}.onrender.com \
+          NEXT_PUBLIC_BASE_PATH=/cache/pr-preview/${{ github.event.number }} \
           npm run build
-          echo "build complete, checking output dir..."
-          ls -la .next || echo ".next dir not found"
-        env:
-          # construct render preview url based on pr number
-          NEXT_PUBLIC_API_URL: https://cache-pr-${{ github.event.number }}.onrender.com
-          NEXT_PUBLIC_BASE_PATH: /cache/pr-preview/${{ github.event.number }}
-      
-      - name: debug directory structure # debug step
-        working-directory: frontend
-        run: |
-          pwd
-          echo "Current directory contents:"
-          ls -la
-          echo "Build output location:"
-          ls -la .next || echo ".next not found"
-      
-      - name: setup pages
-        uses: actions/configure-pages@v4
       
       - name: upload artifact
         uses: actions/upload-pages-artifact@v3
