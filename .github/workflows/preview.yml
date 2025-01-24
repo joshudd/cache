@@ -19,6 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: debug env
+        run: |
+          echo "pr number: ${{ github.event.number }}"
+          echo "repo: ${{ github.repository }}"
+          echo "ref: ${{ github.ref }}"
+      
       - name: setup node
         uses: actions/setup-node@v4
         with:
@@ -47,16 +53,29 @@ jobs:
       - name: build
         working-directory: frontend
         run: |
-          echo "starting build..."
+          echo "starting build with env vars:"
+          echo "NEXT_PUBLIC_API_URL=https://cache-pr-${{ github.event.number }}.onrender.com"
+          echo "NEXT_PUBLIC_BASE_PATH=/cache/pr-preview/${{ github.event.number }}"
+          echo "checking next.config.ts exists:"
+          ls -la next.config.ts
           NEXT_PUBLIC_API_URL=https://cache-pr-${{ github.event.number }}.onrender.com \
           NEXT_PUBLIC_BASE_PATH=/cache/pr-preview/${{ github.event.number }} \
           npm run build
+          echo "build complete, checking output:"
+          ls -la .next/
+          echo "checking static files:"
+          ls -la .next/static
       
       - name: upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/.next
           name: pr-preview-${{ github.event.number }}
+      
+      - name: debug artifact
+        run: |
+          echo "checking artifact contents:"
+          ls -la ${{ runner.temp }}/_github_home/artifacts/
       
       - name: deploy
         id: deployment
@@ -65,15 +84,21 @@ jobs:
           artifact_name: pr-preview-${{ github.event.number }}
           preview: true
       
+      - name: debug urls
+        run: |
+          echo "deployment url: ${{ steps.deployment.outputs.page_url }}"
+          echo "full preview path: ${{ steps.deployment.outputs.page_url }}/cache/pr-preview/${{ github.event.number }}"
+      
       - name: comment preview url
         uses: actions/github-script@v7
         with:
           script: |
             const previewUrl = '${{ steps.deployment.outputs.page_url }}';
             const apiUrl = 'https://cache-pr-${{ github.event.number }}.onrender.com';
+            const fullPreviewUrl = `${previewUrl}/cache/pr-preview/${{ github.event.number }}`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 Preview deployment is ready!\n\nFrontend URL: ${previewUrl}\nAPI URL: ${apiUrl}`
+              body: `🚀 Preview deployment is ready!\n\nFrontend URLs:\n- Base: ${previewUrl}\n- Full path: ${fullPreviewUrl}\nAPI URL: ${apiUrl}\n\nIf you're seeing 404s, try the full path URL.`
             }) 
