@@ -74,8 +74,14 @@ jobs:
       
       - name: debug artifact
         run: |
-          echo "checking artifact contents:"
-          ls -la ${{ runner.temp }}/_github_home/artifacts/
+          echo "checking artifact upload directory:"
+          ls -la frontend/.next/
+          echo "checking github workspace:"
+          ls -la ${{ github.workspace }}
+          echo "checking runner temp:"
+          ls -la ${{ runner.temp }}
+          echo "checking artifact directory:"
+          find ${{ runner.temp }} -name "pr-preview-${{ github.event.number }}" -type f
       
       - name: deploy
         id: deployment
