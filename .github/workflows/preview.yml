@@ -41,6 +41,9 @@ jobs:
       
       - name: install & build
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_BASE_PATH: ${{ env.NEXT_PUBLIC_BASE_PATH }}
         run: |
           npm ci
           npm run build
@@ -61,11 +64,11 @@ jobs:
         with:
           script: |
             const previewUrl = '${{ steps.deployment.outputs.page_url }}';
-            const fullPreviewUrl = `${previewUrl}/cache/pr-preview/${{ github.event.number }}`;
+            const fullPreviewUrl = `${previewUrl}pr-preview/${{ github.event.number }}`;
             const apiUrl = '${{ env.NEXT_PUBLIC_API_URL }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 Preview deployment is ready!\n\nFrontend URLs:\n- Base: ${previewUrl}\n- Full path: ${fullPreviewUrl}\nAPI URL: ${apiUrl}`
+              body: `🚀 Preview deployment is ready!\n\nFrontend URL: ${fullPreviewUrl}\nAPI URL: ${apiUrl}`
             }) 
