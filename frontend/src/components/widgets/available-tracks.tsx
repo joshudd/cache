@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { getTracks, onTrackUpdate, lockTrack } from "@/lib/track";
+import { getTracks, onTrackUpdate } from "@/lib/track";
 import { Track } from "@/types";
 import { Skeleton } from "../ui/skeleton";
 import Link from "next/link";
+import Image from "next/image";
 
 // shows tracks that are available to be locked
 export default function AvailableTracks() {
@@ -66,10 +67,12 @@ export default function AvailableTracks() {
             className="flex items-center gap-3 hover:bg-dark-grey/50 transition-colors rounded-lg p-2"
           >
             <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-              <img
+              <Image
                 src={track.metadata.image_url ?? "/placeholder-album.jpg"}
                 alt={track.metadata.title}
                 className="w-full h-full object-cover"
+                width={40}
+                height={40}
               />
             </div>
             <div className="min-w-0 flex-1">

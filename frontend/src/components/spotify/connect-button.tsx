@@ -17,6 +17,7 @@ export default function SpotifyConnectButton({ isConnected }: { isConnected?: bo
       // force reload to update connection state
       window.location.reload();
     } catch (error) {
+      console.error("failed to disconnect spotify:", error);
       toast({
         title: "Error",
         description: "Failed to disconnect Spotify",

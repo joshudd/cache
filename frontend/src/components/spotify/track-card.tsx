@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Track } from "@/types";
 import { motion } from "framer-motion";
+import Image from "next/image"; 
 
 interface TrackCardProps {
   track: Track;
@@ -45,10 +46,12 @@ export function TrackCard({ track, index, isLocked, onLock }: TrackCardProps) {
         >
           <div className={cn("flex flex-1", isLocked && "opacity-50")}>
             <div className="w-16 flex-shrink-0">
-              <img
+              <Image 
                 src={track?.metadata?.image_url ?? "/placeholder-album.jpg"}
                 alt={`${track?.metadata?.title || "Track"} album art`}
                 className="h-full w-full object-cover"
+                width={64}
+                height={64}
               />
             </div>
             <div className="flex-1 min-w-0 py-2 px-4 text-left">
