@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     'store',
 ]
 
@@ -61,7 +62,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'store.middleware.AuthenticationMiddleware',
     'store.middleware.TrackStatusMiddleware',
-    'rest_framework_simplejwt.middleware.JWTMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
